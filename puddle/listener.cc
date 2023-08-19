@@ -20,8 +20,6 @@ void Listener::Serve() {
   while (true) {
     Socket conn = socket_->Accept();
 
-    LOG(INFO) << "conn accepted";
-
     boost::fibers::fiber([s = std::move(conn), this]() mutable {
       // Register for IO events.
       boost::fibers::context* c = boost::fibers::context::active();

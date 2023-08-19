@@ -27,7 +27,6 @@ void EchoListener::Connection(puddle::Socket&& conn) {
       return;
     }
     recv_buf.Commit(*read_n);
-    LOG(INFO) << "echo: read bytes; n=" << *read_n;
 
     absl::StatusOr<size_t> write_n = conn.Write(recv_buf.committed_buf());
     if (!write_n.ok()) {
