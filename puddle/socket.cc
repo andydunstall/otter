@@ -94,6 +94,46 @@ Socket Socket::Accept() {
   }
 }
 
+absl::StatusOr<size_t> Socket::Read(Buffer* buf) {
+  while (true) {
+    auto write_buf = buf->write_buf();
+    const ssize_t read_n = read(fd_, write_buf.data(), write_buf.size());
+    if (read_n == -1) {
+      if (errno == EWOULDBLOCK) {
+        boost::fibers::context::active()->suspend();
+        continue;
+      }
+      if (errno == EINTR) {
+        continue;
+      }
+      return absl::UnavailableError(
+          absl::StrFormat("socket read: %s", strerror(errno)));
+    }
+    if (read_n == 0) {
+      return absl::CancelledError(absl::StrFormat("socket closed"));
+    }
+    return read_n;
+  }
+}
+
+absl::StatusOr<size_t> Socket::Write(const absl::Span<uint8_t>& buf) {
+  while (true) {
+    const ssize_t write_n = write(fd_, buf.data(), buf.size());
+    if (write_n == -1) {
+      if (errno == EWOULDBLOCK) {
+        boost::fibers::context::active()->suspend();
+        continue;
+      }
+      if (errno == EINTR) {
+        continue;
+      }
+      return absl::UnavailableError(
+          absl::StrFormat("socket write: %s", strerror(errno)));
+    }
+    return write_n;
+  }
+}
+
 Socket Socket::Open() {
   int fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
   CHECK_GE(fd, 0);

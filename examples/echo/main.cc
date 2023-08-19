@@ -16,10 +16,26 @@ namespace echo {
 
 class EchoListener : public puddle::Listener {
  public:
-  void Connection(std::unique_ptr<puddle::Conn> conn) override;
+  void Connection(puddle::Socket&& conn) override;
 };
 
-void EchoListener::Connection(std::unique_ptr<puddle::Conn> conn) {}
+void EchoListener::Connection(puddle::Socket&& conn) {
+  puddle::Buffer recv_buf;
+  while (true) {
+    absl::StatusOr<size_t> read_n = conn.Read(&recv_buf);
+    if (!read_n.ok()) {
+      return;
+    }
+    recv_buf.Commit(*read_n);
+    LOG(INFO) << "echo: read bytes; n=" << *read_n;
+
+    absl::StatusOr<size_t> write_n = conn.Write(recv_buf.committed_buf());
+    if (!write_n.ok()) {
+      return;
+    }
+    recv_buf.Consume(*read_n);
+  }
+}
 
 }  // namespace echo
 

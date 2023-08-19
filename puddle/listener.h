@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include "puddle/conn.h"
 #include "puddle/shard.h"
 #include "puddle/socket.h"
 
@@ -15,7 +14,7 @@ class Listener {
   virtual ~Listener() = default;
 
   // Connection is called when a new connection is accepted.
-  virtual void Connection(std::unique_ptr<Conn> conn) = 0;
+  virtual void Connection(Socket&& s) = 0;
 
  private:
   friend Server;

@@ -2,6 +2,7 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "puddle/buffer.h"
 
 namespace puddle {
 
@@ -24,6 +25,10 @@ class Socket {
   absl::Status Listen(const std::string& ip, uint64_t port, int backlog);
 
   Socket Accept();
+
+  absl::StatusOr<size_t> Read(Buffer* buf);
+
+  absl::StatusOr<size_t> Write(const absl::Span<uint8_t>& buf);
 
   static Socket Open();
 

@@ -1,6 +1,7 @@
 #include "puddle/listener.h"
 
 #include <boost/fiber/context.hpp>
+#include <boost/fiber/fiber.hpp>
 #include <boost/fiber/scheduler.hpp>
 
 #include "absl/log/check.h"
@@ -17,9 +18,22 @@ void Listener::Serve() {
   });
 
   while (true) {
-    socket_->Accept();
+    Socket conn = socket_->Accept();
 
     LOG(INFO) << "conn accepted";
+
+    boost::fibers::fiber([s = std::move(conn), this]() mutable {
+      // Register for IO events.
+      boost::fibers::context* c = boost::fibers::context::active();
+      shard_->Register(s.fd(), [c]() {
+        boost::fibers::context::active()->get_scheduler()->schedule(c);
+      });
+      boost::fibers::context::active()->suspend();
+
+      Connection(std::move(s));
+
+      // TODO(andydunstall) unregister from shard.
+    }).detach();
   }
 }
 
