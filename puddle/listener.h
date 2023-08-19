@@ -3,8 +3,12 @@
 #include <memory>
 
 #include "puddle/conn.h"
+#include "puddle/shard.h"
+#include "puddle/socket.h"
 
 namespace puddle {
+
+class Server;
 
 class Listener {
  public:
@@ -12,6 +16,18 @@ class Listener {
 
   // Connection is called when a new connection is accepted.
   virtual void Connection(std::unique_ptr<Conn> conn) = 0;
+
+ private:
+  friend Server;
+
+  void Serve();
+
+  void SetListenSocket(std::shared_ptr<Shard> shard,
+                       std::unique_ptr<Socket> socket);
+
+  std::shared_ptr<Shard> shard_;
+
+  std::unique_ptr<Socket> socket_;
 };
 
 }  // namespace puddle
