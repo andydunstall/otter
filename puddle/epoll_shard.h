@@ -22,6 +22,8 @@ class EpollShard : public Shard {
   EpollShard(EpollShard&&);
   EpollShard& operator=(EpollShard&&);
 
+  std::unique_ptr<Socket> OpenSocket() override;
+
   void Register(int fd, std::function<void()> cb) override;
 
   void Wake() override;

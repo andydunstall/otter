@@ -11,7 +11,7 @@ class Shard {
  public:
   virtual ~Shard() = default;
 
-  std::unique_ptr<Socket> OpenSocket();
+  virtual std::unique_ptr<Socket> OpenSocket() = 0;
 
   virtual void Register(int fd, std::function<void()> cb) = 0;
 

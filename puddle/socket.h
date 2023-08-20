@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "puddle/buffer.h"
@@ -12,28 +14,22 @@ class Socket {
  public:
   Socket(int fd = -1);
 
-  ~Socket();
+  virtual ~Socket() = default;
 
   int fd() const { return fd_; }
 
-  Socket(const Socket&) = delete;
-  Socket& operator=(const Socket&) = delete;
-
-  Socket(Socket&&);
-  Socket& operator=(Socket&&);
-
   absl::Status Listen(const std::string& ip, uint64_t port, int backlog);
 
-  Socket Accept();
+  virtual std::unique_ptr<Socket> Accept() = 0;
 
-  absl::StatusOr<size_t> Read(Buffer* buf);
+  virtual absl::StatusOr<size_t> Read(Buffer* buf) = 0;
 
-  absl::StatusOr<size_t> Write(const absl::Span<uint8_t>& buf);
+  virtual absl::StatusOr<size_t> Write(const absl::Span<uint8_t>& buf) = 0;
 
-  static Socket Open();
-
- private:
+ protected:
   int fd_;
 };
+
+absl::StatusOr<uint32_t> ParseIPv4(const std::string& s);
 
 }  // namespace puddle

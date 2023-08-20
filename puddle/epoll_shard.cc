@@ -4,6 +4,7 @@
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "puddle/epoll_socket.h"
 
 namespace puddle {
 
@@ -44,6 +45,10 @@ EpollShard& EpollShard::operator=(EpollShard&& o) {
   o.epoll_fd_ = -1;
   o.wake_fd_ = -1;
   return *this;
+}
+
+std::unique_ptr<Socket> EpollShard::OpenSocket() {
+  return std::make_unique<EpollSocket>(EpollSocket::Open());
 }
 
 void EpollShard::Register(int fd, std::function<void()> cb) {

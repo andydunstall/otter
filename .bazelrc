@@ -1,1 +1,1 @@
-build --cxxopt=-std=c++17 --cxxopt=-Werror
+build --cxxopt=-std=c++17 --cxxopt=-Werror --linkopt=-L/usr/local/lib

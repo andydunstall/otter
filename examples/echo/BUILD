@@ -1,7 +1,7 @@
 cc_binary(
 	name = "echo",
 	srcs = ["main.cc"],
-	linkopts = ["-L/usr/local/lib","-lboost_fiber", "-lboost_context"],
+	linkopts = ["-lboost_fiber", "-lboost_context", "-luring"],
 	deps = [
 		"@com_google_absl//absl/flags:flag",
 		"@com_google_absl//absl/flags:parse",

@@ -3,43 +3,11 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#include <boost/fiber/operations.hpp>
-
-#include "absl/log/check.h"
-#include "absl/log/log.h"
-#include "absl/status/status.h"
 #include "absl/strings/str_format.h"
 
 namespace puddle {
 
-absl::StatusOr<uint32_t> ParseIPv4(const std::string& s) {
-  uint32_t ip;
-  if (inet_pton(AF_INET, s.data(), &ip) != 1) {
-    return absl::InvalidArgumentError("parse ipv4: invalid address");
-  }
-  return ip;
-}
-
 Socket::Socket(int fd) : fd_{fd} {}
-
-Socket::~Socket() {
-  if (fd_ != -1) {
-    close(fd_);
-  }
-}
-
-Socket::Socket(Socket&& o) {
-  fd_ = o.fd_;
-  // Set to -1 to avoid o closing the socket.
-  o.fd_ = -1;
-}
-
-Socket& Socket::operator=(Socket&& o) {
-  fd_ = o.fd_;
-  // Set to -1 to avoid o closing the socket.
-  o.fd_ = -1;
-  return *this;
-}
 
 absl::Status Socket::Listen(const std::string& ip, uint64_t port, int backlog) {
   absl::StatusOr<uint32_t> ipv4 = ParseIPv4(ip);
@@ -71,73 +39,12 @@ absl::Status Socket::Listen(const std::string& ip, uint64_t port, int backlog) {
   return absl::OkStatus();
 }
 
-Socket Socket::Accept() {
-  sockaddr_in client_addr;
-  socklen_t addr_len = sizeof(client_addr);
-
-  int fd;
-  while (true) {
-    fd = accept4(fd_, (struct sockaddr*)&client_addr, &addr_len,
-                 SOCK_NONBLOCK | SOCK_CLOEXEC);
-
-    if (fd == -1) {
-      if (errno == EWOULDBLOCK) {
-        boost::fibers::context::active()->suspend();
-        continue;
-      }
-      if (errno == EINTR) {
-        continue;
-      }
-      CHECK_NE(fd, -1);
-    }
-    return Socket{fd};
+absl::StatusOr<uint32_t> ParseIPv4(const std::string& s) {
+  uint32_t ip;
+  if (inet_pton(AF_INET, s.data(), &ip) != 1) {
+    return absl::InvalidArgumentError("parse ipv4: invalid address");
   }
-}
-
-absl::StatusOr<size_t> Socket::Read(Buffer* buf) {
-  while (true) {
-    auto write_buf = buf->write_buf();
-    const ssize_t read_n = read(fd_, write_buf.data(), write_buf.size());
-    if (read_n == -1) {
-      if (errno == EWOULDBLOCK) {
-        boost::fibers::context::active()->suspend();
-        continue;
-      }
-      if (errno == EINTR) {
-        continue;
-      }
-      return absl::UnavailableError(
-          absl::StrFormat("socket read: %s", strerror(errno)));
-    }
-    if (read_n == 0) {
-      return absl::CancelledError(absl::StrFormat("socket closed"));
-    }
-    return read_n;
-  }
-}
-
-absl::StatusOr<size_t> Socket::Write(const absl::Span<uint8_t>& buf) {
-  while (true) {
-    const ssize_t write_n = write(fd_, buf.data(), buf.size());
-    if (write_n == -1) {
-      if (errno == EWOULDBLOCK) {
-        boost::fibers::context::active()->suspend();
-        continue;
-      }
-      if (errno == EINTR) {
-        continue;
-      }
-      return absl::UnavailableError(
-          absl::StrFormat("socket write: %s", strerror(errno)));
-    }
-    return write_n;
-  }
-}
-
-Socket Socket::Open() {
-  int fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
-  CHECK_GE(fd, 0);
-  return Socket(fd);
+  return ip;
 }
 
 }  // namespace puddle

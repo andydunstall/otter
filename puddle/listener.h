@@ -14,7 +14,7 @@ class Listener {
   virtual ~Listener() = default;
 
   // Connection is called when a new connection is accepted.
-  virtual void Connection(Socket&& s) = 0;
+  virtual void Connection(std::unique_ptr<Socket> s) = 0;
 
  private:
   friend Server;

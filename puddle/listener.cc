@@ -18,12 +18,12 @@ void Listener::Serve() {
   });
 
   while (true) {
-    Socket conn = socket_->Accept();
+    std::unique_ptr<Socket> conn = socket_->Accept();
 
     boost::fibers::fiber([s = std::move(conn), this]() mutable {
       // Register for IO events.
       boost::fibers::context* c = boost::fibers::context::active();
-      shard_->Register(s.fd(), [c]() {
+      shard_->Register(s->fd(), [c]() {
         boost::fibers::context::active()->get_scheduler()->schedule(c);
       });
       boost::fibers::context::active()->suspend();
