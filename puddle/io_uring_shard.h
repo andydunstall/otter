@@ -2,6 +2,7 @@
 
 #include <liburing.h>
 
+#include <boost/fiber/future/promise.hpp>
 #include <memory>
 
 #include "puddle/io_uring_socket.h"
@@ -30,6 +31,11 @@ class IoUringShard : public Shard {
   void Poll(int timeout_ms) override;
 
  private:
+  friend IoUringSocket;
+
+  std::unique_ptr<boost::fibers::promise<int>> RequestAccept(
+      int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags);
+
   std::unique_ptr<struct io_uring> ring_;
 };
 

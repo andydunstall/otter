@@ -30,7 +30,7 @@ IoUringShard& IoUringShard::operator=(IoUringShard&& o) {
 }
 
 std::unique_ptr<Socket> IoUringShard::OpenSocket() {
-  return std::make_unique<IoUringSocket>(IoUringSocket::Open(ring_.get()));
+  return std::make_unique<IoUringSocket>(IoUringSocket::Open(this));
 }
 
 void IoUringShard::Register(int fd, std::function<void()> cb) {
@@ -56,13 +56,23 @@ void IoUringShard::Poll(int timeout_ms) {
   io_uring_for_each_cqe(ring_.get(), ring_head, cqe) {
     cqe_count++;
 
-    LOG(INFO) << "poll cqe";
-
-    // TODO(andydunstall) dispatch
+    boost::fibers::promise<int>* promise =
+        (boost::fibers::promise<int>*)cqe->user_data;
+    promise->set_value(cqe->res);
   }
   if (cqe_count) {
     io_uring_cq_advance(ring_.get(), cqe_count);
   }
+}
+
+std::unique_ptr<boost::fibers::promise<int>> IoUringShard::RequestAccept(
+    int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
+  std::unique_ptr<boost::fibers::promise<int>> promise =
+      std::make_unique<boost::fibers::promise<int>>();
+  struct io_uring_sqe* sqe = io_uring_get_sqe(ring_.get());
+  io_uring_prep_accept(sqe, sockfd, addr, addrlen, flags);
+  io_uring_sqe_set_data(sqe, promise.get());
+  return promise;
 }
 
 }  // namespace puddle

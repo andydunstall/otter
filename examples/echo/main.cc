@@ -52,7 +52,8 @@ int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
 
   LOG(INFO) << "echo: starting echo server; host=" << absl::GetFlag(FLAGS_host)
-            << "; port=" << absl::GetFlag(FLAGS_port) << "; epoll=" << absl::GetFlag(FLAGS_epoll);
+            << "; port=" << absl::GetFlag(FLAGS_port)
+            << "; epoll=" << absl::GetFlag(FLAGS_epoll);
 
   std::shared_ptr<puddle::Shard> shard = CreateShard();
 
