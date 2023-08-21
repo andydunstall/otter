@@ -26,7 +26,6 @@ void Listener::Serve() {
       shard_->Register(s->fd(), [c]() {
         boost::fibers::context::active()->get_scheduler()->schedule(c);
       });
-      boost::fibers::context::active()->suspend();
 
       Connection(std::move(s));
 

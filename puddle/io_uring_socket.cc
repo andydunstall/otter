@@ -42,9 +42,8 @@ std::unique_ptr<Socket> IoUringSocket::Accept() {
   sockaddr_in client_addr;
   socklen_t addr_len = sizeof(client_addr);
 
-  std::unique_ptr<boost::fibers::promise<int>> promise =
-      shard_->RequestAccept(fd_, (struct sockaddr*)&client_addr, &addr_len,
-                            SOCK_NONBLOCK | SOCK_CLOEXEC);
+  std::unique_ptr<boost::fibers::promise<int>> promise = shard_->RequestAccept(
+      fd_, (struct sockaddr*)&client_addr, &addr_len, SOCK_CLOEXEC);
   boost::fibers::future<int> future = promise->get_future();
   future.wait();
   int fd = future.get();
@@ -54,17 +53,36 @@ std::unique_ptr<Socket> IoUringSocket::Accept() {
 }
 
 absl::StatusOr<size_t> IoUringSocket::Read(Buffer* buf) {
-  // TODO(andydunstall)
-  return 0;
+  auto write_buf = buf->write_buf();
+
+  std::unique_ptr<boost::fibers::promise<int>> promise =
+      shard_->RequestRead(fd_, write_buf.data(), write_buf.size(), 0);
+  boost::fibers::future<int> future = promise->get_future();
+  future.wait();
+  ssize_t read_n = future.get();
+  if (read_n == -1) {
+    return absl::UnavailableError(absl::StrFormat("socket read"));
+  }
+  if (read_n == 0) {
+    return absl::CancelledError(absl::StrFormat("socket closed"));
+  }
+  return read_n;
 }
 
 absl::StatusOr<size_t> IoUringSocket::Write(const absl::Span<uint8_t>& buf) {
-  // TODO(andydunstall)
-  return 0;
+  std::unique_ptr<boost::fibers::promise<int>> promise =
+      shard_->RequestWrite(fd_, buf.data(), buf.size(), 0);
+  boost::fibers::future<int> future = promise->get_future();
+  future.wait();
+  ssize_t write_n = future.get();
+  if (write_n == -1) {
+    return absl::UnavailableError("socket write");
+  }
+  return write_n;
 }
 
 IoUringSocket IoUringSocket::Open(IoUringShard* shard) {
-  int fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+  int fd = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
   CHECK_GE(fd, 0);
   return IoUringSocket(fd, shard);
 }

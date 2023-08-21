@@ -75,4 +75,24 @@ std::unique_ptr<boost::fibers::promise<int>> IoUringShard::RequestAccept(
   return promise;
 }
 
+std::unique_ptr<boost::fibers::promise<int>> IoUringShard::RequestRead(
+    int fd, void* buf, unsigned nbytes, off_t offset) {
+  std::unique_ptr<boost::fibers::promise<int>> promise =
+      std::make_unique<boost::fibers::promise<int>>();
+  struct io_uring_sqe* sqe = io_uring_get_sqe(ring_.get());
+  io_uring_prep_read(sqe, fd, buf, nbytes, offset);
+  io_uring_sqe_set_data(sqe, promise.get());
+  return promise;
+}
+
+std::unique_ptr<boost::fibers::promise<int>> IoUringShard::RequestWrite(
+    int fd, const void* buf, unsigned nbytes, off_t offset) {
+  std::unique_ptr<boost::fibers::promise<int>> promise =
+      std::make_unique<boost::fibers::promise<int>>();
+  struct io_uring_sqe* sqe = io_uring_get_sqe(ring_.get());
+  io_uring_prep_write(sqe, fd, buf, nbytes, offset);
+  io_uring_sqe_set_data(sqe, promise.get());
+  return promise;
+}
+
 }  // namespace puddle

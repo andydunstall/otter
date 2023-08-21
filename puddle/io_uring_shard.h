@@ -36,6 +36,15 @@ class IoUringShard : public Shard {
   std::unique_ptr<boost::fibers::promise<int>> RequestAccept(
       int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags);
 
+  std::unique_ptr<boost::fibers::promise<int>> RequestRead(int fd, void* buf,
+                                                           unsigned nbytes,
+                                                           off_t offset);
+
+  std::unique_ptr<boost::fibers::promise<int>> RequestWrite(int fd,
+                                                            const void* buf,
+                                                            unsigned nbytes,
+                                                            off_t offset);
+
   std::unique_ptr<struct io_uring> ring_;
 };
 
