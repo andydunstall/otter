@@ -44,11 +44,18 @@ void IoUringShard::Wake() {
 void IoUringShard::Poll(int timeout_ms) {
   io_uring_submit(ring_.get());
 
-  // TODO(andydunstall) For now only handling block forever or don't block.
+  __kernel_timespec ts{0, 0};
+  __kernel_timespec* ts_arg = nullptr;
 
-  if (timeout_ms == -1) {
-    // TODO(andydunstall) Block
+  if (timeout_ms > 0) {
+    int timeout_ns = timeout_ms * 1000000;
+    ts.tv_sec = timeout_ns / 1000000000ULL;
+    ts.tv_nsec = timeout_ns % 1000000000ULL;
+    ts_arg = &ts;
   }
+
+  struct io_uring_cqe* cqe_ptr = nullptr;
+  io_uring_wait_cqes(ring_.get(), &cqe_ptr, 1, ts_arg, NULL);
 
   uint32_t cqe_count = 0;
   unsigned ring_head;
