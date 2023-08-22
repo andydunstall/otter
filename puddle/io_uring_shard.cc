@@ -34,11 +34,18 @@ std::unique_ptr<Socket> IoUringShard::OpenSocket() {
 }
 
 void IoUringShard::Register(int fd, std::function<void()> cb) {
-  // TODO(andydunstall)
+  // Nothing to do for io_uring.
 }
 
 void IoUringShard::Wake() {
-  // TODO(andydunstall)
+  std::unique_ptr<boost::fibers::promise<int>> promise =
+      std::make_unique<boost::fibers::promise<int>>();
+  struct io_uring_sqe* sqe = io_uring_get_sqe(ring_.get());
+  sqe->opcode = IORING_OP_MSG_RING;
+  sqe->fd = ring_->ring_fd;
+  sqe->len = 0;
+  sqe->off = 0;
+  sqe->rw_flags = 0;
 }
 
 void IoUringShard::Poll(int timeout_ms) {
