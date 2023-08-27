@@ -1,4 +1,4 @@
-#include "server/protocol.h"
+#include "fuddle/server/protocol.h"
 
 #include <arpa/inet.h>
 #include <endian.h>
