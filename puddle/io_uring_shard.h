@@ -31,6 +31,9 @@ class IoUringShard : public Shard {
  private:
   friend IoUringSocket;
 
+  std::unique_ptr<boost::fibers::promise<int>> RequestConnect(
+      int sockfd, struct sockaddr* addr, socklen_t addrlen);
+
   std::unique_ptr<boost::fibers::promise<int>> RequestAccept(
       int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags);
 

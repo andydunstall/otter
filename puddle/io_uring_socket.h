@@ -20,6 +20,8 @@ class IoUringSocket : public Socket {
 
   std::unique_ptr<Socket> Accept() override;
 
+  absl::Status Connect(const std::string& ip, uint64_t port) override;
+
   absl::StatusOr<size_t> Read(Buffer* buf) override;
 
   absl::StatusOr<size_t> Write(const absl::Span<uint8_t>& buf) override;

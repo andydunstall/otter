@@ -52,6 +52,31 @@ std::unique_ptr<Socket> IoUringSocket::Accept() {
   return std::make_unique<IoUringSocket>(fd, shard_);
 }
 
+absl::Status IoUringSocket::Connect(const std::string& ip, uint64_t port) {
+  absl::StatusOr<uint32_t> ipv4 = ParseIPv4(ip);
+  if (!ipv4.ok()) {
+    return ipv4.status();
+  }
+
+  sockaddr_in server_addr;
+  memset(&server_addr, 0, sizeof(server_addr));
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_port = htons(port);
+  server_addr.sin_addr.s_addr = *ipv4;
+  socklen_t addr_len = sizeof(server_addr);
+
+  std::unique_ptr<boost::fibers::promise<int>> promise =
+      shard_->RequestConnect(fd_, (struct sockaddr*)&server_addr, addr_len);
+  boost::fibers::future<int> future = promise->get_future();
+  future.wait();
+  int res = future.get();
+  if (res < 0) {
+    return absl::UnavailableError(
+        absl::StrFormat("socket connect: %s", strerror(-res)));
+  }
+  return absl::OkStatus();
+}
+
 absl::StatusOr<size_t> IoUringSocket::Read(Buffer* buf) {
   auto write_buf = buf->write_buf();
 

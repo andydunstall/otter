@@ -75,6 +75,16 @@ void IoUringShard::Poll(int timeout_ms) {
   }
 }
 
+std::unique_ptr<boost::fibers::promise<int>> IoUringShard::RequestConnect(
+    int sockfd, struct sockaddr* addr, socklen_t addrlen) {
+  std::unique_ptr<boost::fibers::promise<int>> promise =
+      std::make_unique<boost::fibers::promise<int>>();
+  struct io_uring_sqe* sqe = io_uring_get_sqe(ring_.get());
+  io_uring_prep_connect(sqe, sockfd, addr, addrlen);
+  io_uring_sqe_set_data(sqe, promise.get());
+  return promise;
+}
+
 std::unique_ptr<boost::fibers::promise<int>> IoUringShard::RequestAccept(
     int sockfd, struct sockaddr* addr, socklen_t* addrlen, int flags) {
   std::unique_ptr<boost::fibers::promise<int>> promise =
