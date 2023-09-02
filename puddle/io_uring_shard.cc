@@ -33,10 +33,6 @@ std::unique_ptr<Socket> IoUringShard::OpenSocket() {
   return std::make_unique<IoUringSocket>(IoUringSocket::Open(this));
 }
 
-void IoUringShard::Register(int fd, std::function<void()> cb) {
-  // Nothing to do for io_uring.
-}
-
 void IoUringShard::Wake() {
   std::unique_ptr<boost::fibers::promise<int>> promise =
       std::make_unique<boost::fibers::promise<int>>();

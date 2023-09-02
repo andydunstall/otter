@@ -4,7 +4,6 @@
 #include "absl/flags/parse.h"
 #include "absl/flags/usage.h"
 #include "absl/log/log.h"
-#include "puddle/epoll_shard.h"
 #include "puddle/io_uring_shard.h"
 #include "puddle/listener.h"
 #include "puddle/server.h"
@@ -12,7 +11,6 @@
 
 ABSL_FLAG(std::string, host, "127.0.0.1", "server host ip address");
 ABSL_FLAG(uint16_t, port, 8119, "server port address");
-ABSL_FLAG(bool, epoll, true, "use epoll instead of io_uring");
 
 namespace echo {
 
@@ -41,9 +39,6 @@ void EchoListener::Connection(std::unique_ptr<puddle::Socket> conn) {
 }  // namespace echo
 
 std::shared_ptr<puddle::Shard> CreateShard() {
-  if (absl::GetFlag(FLAGS_epoll)) {
-    return std::make_shared<puddle::EpollShard>();
-  }
   return std::make_shared<puddle::IoUringShard>();
 }
 
@@ -52,10 +47,10 @@ int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
 
   LOG(INFO) << "echo: starting echo server; host=" << absl::GetFlag(FLAGS_host)
-            << "; port=" << absl::GetFlag(FLAGS_port)
-            << "; epoll=" << absl::GetFlag(FLAGS_epoll);
+            << "; port=" << absl::GetFlag(FLAGS_port);
 
-  std::shared_ptr<puddle::Shard> shard = CreateShard();
+  std::shared_ptr<puddle::Shard> shard =
+      std::make_shared<puddle::IoUringShard>();
 
   puddle::Server server{shard};
   absl::Status listener_status =

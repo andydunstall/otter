@@ -13,8 +13,6 @@ class Shard {
 
   virtual std::unique_ptr<Socket> OpenSocket() = 0;
 
-  virtual void Register(int fd, std::function<void()> cb) = 0;
-
   virtual void Wake() = 0;
 
   virtual void Poll(int timeout_ms) = 0;

@@ -24,8 +24,6 @@ class IoUringShard : public Shard {
 
   std::unique_ptr<Socket> OpenSocket() override;
 
-  void Register(int fd, std::function<void()> cb) override;
-
   void Wake() override;
 
   void Poll(int timeout_ms) override;

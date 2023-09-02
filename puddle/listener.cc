@@ -12,24 +12,11 @@ namespace puddle {
 void Listener::Serve() {
   CHECK(socket_) << "listen socket not set";
 
-  boost::fibers::context* c = boost::fibers::context::active();
-  shard_->Register(socket_->fd(), [c]() {
-    boost::fibers::context::active()->get_scheduler()->schedule(c);
-  });
-
   while (true) {
     std::unique_ptr<Socket> conn = socket_->Accept();
 
     boost::fibers::fiber([s = std::move(conn), this]() mutable {
-      // Register for IO events.
-      boost::fibers::context* c = boost::fibers::context::active();
-      shard_->Register(s->fd(), [c]() {
-        boost::fibers::context::active()->get_scheduler()->schedule(c);
-      });
-
       Connection(std::move(s));
-
-      // TODO(andydunstall) unregister from shard.
     }).detach();
   }
 }
