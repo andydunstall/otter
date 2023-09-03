@@ -4,8 +4,8 @@ namespace otter {
 namespace server {
 
 constexpr size_t kMaxPayloadSize = 64 * (1 << 20);  // 64 MiB
-constexpr size_t kMaxKeySize = 1 << 20;  // 1 MiB
-constexpr size_t kMaxValueSize = 32 * (1 << 20);  // 32 MiB
+constexpr size_t kMaxKeySize = 1 << 20;             // 1 MiB
+constexpr size_t kMaxValueSize = 32 * (1 << 20);    // 32 MiB
 
 enum class MessageType : uint16_t {
   kEcho = 1,

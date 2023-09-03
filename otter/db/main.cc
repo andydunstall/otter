@@ -5,7 +5,7 @@
 #include "absl/flags/usage.h"
 #include "absl/log/log.h"
 #include "otter/server/listener.h"
-#include "otter/storage/rocksdb_storage.h"
+#include "otter/storage/inmemory_storage.h"
 #include "otter/storage/storage.h"
 #include "puddle/io_uring_shard.h"
 #include "puddle/listener.h"
@@ -26,19 +26,10 @@ int main(int argc, char* argv[]) {
   std::shared_ptr<puddle::Shard> shard =
       std::make_shared<puddle::IoUringShard>();
 
-  absl::StatusOr<otter::storage::RocksDBStorage> rocksdb_storage =
-      otter::storage::RocksDBStorage::Open("./data");
-  if (!rocksdb_storage.ok()) {
-    LOG(ERROR) << "failed to open rocksdb storage; err="
-               << rocksdb_storage.status().message();
-    return 1;
-  }
-
   LOG(INFO) << "otter: opened rocksdb storage; path=./data";
 
   std::shared_ptr<otter::storage::Storage> storage =
-      std::make_shared<otter::storage::RocksDBStorage>(
-          std::move(*rocksdb_storage));
+      std::make_shared<otter::storage::InMemoryStorage>();
 
   puddle::Server server{shard};
   absl::Status listener_status =
