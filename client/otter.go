@@ -28,7 +28,7 @@ func Connect(addr string, opts ...Option) (*Fuddle, error) {
 	}
 	return &Fuddle{
 		conn: conn,
-		buf:  make([]byte, 1024),
+		buf:  make([]byte, 2048),
 	}, nil
 }
 

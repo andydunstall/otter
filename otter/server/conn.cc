@@ -44,13 +44,18 @@ void Conn::ReadLoop() {
     }
     if (header->payload_size > kMaxPayloadSize) {
       LOG(WARNING) << "conn: read loop: payload size exceeds limit";
+      if (recv_buf.full()) {
+        recv_buf.Reserve(recv_buf.capacity() * 2);
+      }
       return;
     }
     if (recv_buf.committed_buf().size() <
         parser.offset() + header->payload_size) {
       // Insuffient bytes to read payload.
       DLOG(INFO) << "conn: read loop: insufficient bytes to read payload";
-      // TODO(andydunstall) grow if recv buf full
+      if (recv_buf.full()) {
+        recv_buf.Reserve(recv_buf.capacity() * 2);
+      }
       continue;
     }
 

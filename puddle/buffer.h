@@ -19,6 +19,8 @@ class Buffer {
 
   size_t capacity() const { return buf_.size(); }
 
+  bool full() const { return end_idx_ == buf_.size(); }
+
   // Returns the committed buffer.
   absl::Span<uint8_t> committed_buf() {
     return absl::Span<uint8_t>{buf_.data() + start_idx_, end_idx_ - start_idx_};
