@@ -1,1 +1,1 @@
-build --cxxopt=-std=c++17 --cxxopt=-Werror --linkopt=-L/usr/local/lib
+build --cxxopt=-std=c++17 --cxxopt=-O3 --cxxopt=-DNDEBUG --cxxopt=-Werror --linkopt=-L/usr/local/lib
