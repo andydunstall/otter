@@ -1,4 +1,4 @@
-#include "fuddle/server/parser.h"
+#include "otter/server/parser.h"
 
 #include <arpa/inet.h>
 
@@ -6,7 +6,7 @@
 
 #include "absl/strings/str_format.h"
 
-namespace fuddle {
+namespace otter {
 namespace server {
 
 Parser::Parser(const absl::Span<uint8_t> buf) : buf_{buf}, offset_{0} {}
@@ -79,4 +79,4 @@ std::optional<Header> Parser::ReadHeader() {
 }
 
 }  // namespace server
-}  // namespace fuddle
+}  // namespace otter

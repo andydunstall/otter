@@ -1,4 +1,4 @@
-package fuddle
+package otter
 
 import (
 	"encoding/binary"

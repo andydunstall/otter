@@ -1,6 +1,6 @@
 #pragma once
 
-namespace fuddle {
+namespace otter {
 namespace server {
 
 constexpr size_t kMaxPayloadSize = 64 * (1 << 20);  // 64 MiB
@@ -23,4 +23,4 @@ struct Header {
 };
 
 }  // namespace server
-}  // namespace fuddle
+}  // namespace otter

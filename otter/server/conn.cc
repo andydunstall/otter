@@ -1,13 +1,13 @@
-#include "fuddle/server/conn.h"
+#include "otter/server/conn.h"
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/strings/str_format.h"
-#include "fuddle/server/parser.h"
-#include "fuddle/server/protocol.h"
-#include "fuddle/server/reply_builder.h"
+#include "otter/server/parser.h"
+#include "otter/server/protocol.h"
+#include "otter/server/reply_builder.h"
 
-namespace fuddle {
+namespace otter {
 namespace server {
 
 Conn::Conn(std::unique_ptr<puddle::Socket> socket,
@@ -232,4 +232,4 @@ absl::Status Conn::Delete(absl::Span<uint8_t> b) {
 }
 
 }  // namespace server
-}  // namespace fuddle
+}  // namespace otter

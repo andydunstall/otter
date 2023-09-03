@@ -1,10 +1,10 @@
 #pragma once
 
-#include "fuddle/server/conn.h"
-#include "fuddle/storage/storage.h"
+#include "otter/server/conn.h"
+#include "otter/storage/storage.h"
 #include "puddle/listener.h"
 
-namespace fuddle {
+namespace otter {
 namespace server {
 
 class Listener : public puddle::Listener {
@@ -18,4 +18,4 @@ class Listener : public puddle::Listener {
 };
 
 }  // namespace server
-}  // namespace fuddle
+}  // namespace otter

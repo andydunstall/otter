@@ -5,7 +5,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 
-namespace fuddle {
+namespace otter {
 namespace storage {
 
 class Storage {
@@ -21,4 +21,4 @@ class Storage {
 };
 
 }  // namespace storage
-}  // namespace fuddle
+}  // namespace otter

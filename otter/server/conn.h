@@ -2,10 +2,10 @@
 
 #include <memory>
 
-#include "fuddle/storage/storage.h"
+#include "otter/storage/storage.h"
 #include "puddle/socket.h"
 
-namespace fuddle {
+namespace otter {
 namespace server {
 
 class Conn {
@@ -30,4 +30,4 @@ class Conn {
 };
 
 }  // namespace server
-}  // namespace fuddle
+}  // namespace otter

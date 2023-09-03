@@ -3,14 +3,14 @@ package tests
 import (
 	"testing"
 
-	fuddle "github.com/fuddle-io/fuddle/client"
+	otter "github.com/otter-io/otter/client"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDB_PutThenGet(t *testing.T) {
-	conn, err := fuddle.Connect("localhost:8119")
+	conn, err := otter.Connect("localhost:8119")
 	require.NoError(t, err)
 
 	key := uuid.New().String()
@@ -24,7 +24,7 @@ func TestDB_PutThenGet(t *testing.T) {
 }
 
 func TestDB_DeleteThenGetNotFound(t *testing.T) {
-	conn, err := fuddle.Connect("localhost:8119")
+	conn, err := otter.Connect("localhost:8119")
 	require.NoError(t, err)
 
 	key := uuid.New().String()
@@ -35,5 +35,5 @@ func TestDB_DeleteThenGetNotFound(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = conn.Get(key)
-	assert.Equal(t, fuddle.ErrNotFound, err)
+	assert.Equal(t, otter.ErrNotFound, err)
 }

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "fuddle/storage/storage.h"
+#include "otter/storage/storage.h"
 #include "rocksdb/db.h"
 
-namespace fuddle {
+namespace otter {
 namespace storage {
 
 class RocksDBStorage : public Storage {
@@ -32,4 +32,4 @@ class RocksDBStorage : public Storage {
 };
 
 }  // namespace storage
-}  // namespace fuddle
+}  // namespace otter

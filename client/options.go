@@ -1,4 +1,4 @@
-package fuddle
+package otter
 
 type options struct {
 	transport Transport

@@ -1,10 +1,10 @@
-#include "fuddle/server/reply_builder.h"
+#include "otter/server/reply_builder.h"
 
 #include <arpa/inet.h>
 
 #include <cstring>
 
-namespace fuddle {
+namespace otter {
 namespace server {
 
 ReplyBuilder::ReplyBuilder(puddle::Socket* socket) : socket_{socket} {}
@@ -64,4 +64,4 @@ absl::Status ReplyBuilder::Flush() {
 }
 
 }  // namespace server
-}  // namespace fuddle
+}  // namespace otter

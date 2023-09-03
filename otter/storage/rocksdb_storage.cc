@@ -1,8 +1,8 @@
-#include "fuddle/storage/rocksdb_storage.h"
+#include "otter/storage/rocksdb_storage.h"
 
 #include "absl/log/check.h"
 
-namespace fuddle {
+namespace otter {
 namespace storage {
 
 RocksDBStorage::RocksDBStorage(rocksdb::DB* db) : db_{db} {}
@@ -65,4 +65,4 @@ absl::StatusOr<RocksDBStorage> RocksDBStorage::Open(const std::string& path) {
 }
 
 }  // namespace storage
-}  // namespace fuddle
+}  // namespace otter

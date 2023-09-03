@@ -1,10 +1,10 @@
-#include "fuddle/server/listener.h"
+#include "otter/server/listener.h"
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
-#include "fuddle/server/protocol.h"
+#include "otter/server/protocol.h"
 
-namespace fuddle {
+namespace otter {
 namespace server {
 
 Listener::Listener(std::shared_ptr<storage::Storage> storage)
@@ -16,4 +16,4 @@ void Listener::Connection(std::unique_ptr<puddle::Socket> socket) {
 }
 
 }  // namespace server
-}  // namespace fuddle
+}  // namespace otter

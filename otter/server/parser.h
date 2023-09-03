@@ -4,9 +4,9 @@
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "fuddle/server/protocol.h"
+#include "otter/server/protocol.h"
 
-namespace fuddle {
+namespace otter {
 namespace server {
 
 class Parser {
@@ -32,4 +32,4 @@ class Parser {
 };
 
 }  // namespace server
-}  // namespace fuddle
+}  // namespace otter

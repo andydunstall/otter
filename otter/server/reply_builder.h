@@ -4,10 +4,10 @@
 #include <vector>
 
 #include "absl/status/status.h"
-#include "fuddle/server/protocol.h"
+#include "otter/server/protocol.h"
 #include "puddle/socket.h"
 
-namespace fuddle {
+namespace otter {
 namespace server {
 
 class ReplyBuilder {
@@ -35,4 +35,4 @@ class ReplyBuilder {
 };
 
 }  // namespace server
-}  // namespace fuddle
+}  // namespace otter
