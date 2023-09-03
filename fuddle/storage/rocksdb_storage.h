@@ -12,6 +12,12 @@ class RocksDBStorage : public Storage {
 
   ~RocksDBStorage();
 
+  RocksDBStorage(const RocksDBStorage&) = delete;
+  RocksDBStorage& operator=(const RocksDBStorage&) = delete;
+
+  RocksDBStorage(RocksDBStorage&&);
+  RocksDBStorage& operator=(RocksDBStorage&&);
+
   absl::StatusOr<std::string> Get(const std::string_view& key) override;
 
   absl::Status Put(const std::string_view& key,

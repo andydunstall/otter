@@ -13,10 +13,24 @@ RocksDBStorage::~RocksDBStorage() {
   }
 }
 
+RocksDBStorage::RocksDBStorage(RocksDBStorage&& o) {
+  db_ = o.db_;
+  o.db_ = nullptr;
+}
+
+RocksDBStorage& RocksDBStorage::operator=(RocksDBStorage&& o) {
+  db_ = o.db_;
+  o.db_ = nullptr;
+  return *this;
+}
+
 absl::StatusOr<std::string> RocksDBStorage::Get(const std::string_view& key) {
   std::string value;
   rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), key, &value);
   if (!s.ok()) {
+    if (s.IsNotFound()) {
+      return absl::NotFoundError(s.ToString());
+    }
     return absl::UnknownError(s.ToString());
   }
   return value;
@@ -39,7 +53,7 @@ absl::Status RocksDBStorage::Delete(const std::string_view& key) {
   return absl::OkStatus();
 }
 
-absl::StatusOr<RocksDBStorage> Open(const std::string& path) {
+absl::StatusOr<RocksDBStorage> RocksDBStorage::Open(const std::string& path) {
   rocksdb::DB* db;
   rocksdb::Options options;
   options.create_if_missing = true;

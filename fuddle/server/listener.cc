@@ -7,8 +7,11 @@
 namespace fuddle {
 namespace server {
 
+Listener::Listener(std::shared_ptr<storage::Storage> storage)
+    : storage_{storage} {}
+
 void Listener::Connection(std::unique_ptr<puddle::Socket> socket) {
-  Conn conn{std::move(socket)};
+  Conn conn{std::move(socket), storage_};
   conn.ReadLoop();
 }
 

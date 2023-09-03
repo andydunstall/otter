@@ -85,11 +85,12 @@ absl::StatusOr<size_t> IoUringSocket::Read(Buffer* buf) {
   boost::fibers::future<int> future = promise->get_future();
   future.wait();
   ssize_t read_n = future.get();
-  if (read_n == -1) {
-    return absl::UnavailableError(absl::StrFormat("socket read"));
+  if (read_n < 0) {
+    return absl::UnavailableError(
+        absl::StrFormat("socket read: %s", strerror(-read_n)));
   }
   if (read_n == 0) {
-    return absl::CancelledError(absl::StrFormat("socket closed"));
+    return absl::UnavailableError("socket closed");
   }
   return read_n;
 }

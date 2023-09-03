@@ -1,20 +1,26 @@
 #pragma once
 
-#include "absl/types/span.h"
-
 namespace fuddle {
 namespace server {
 
+constexpr size_t kMaxPayloadSize = 64 * (1 << 20);  // 64 MiB
+constexpr size_t kMaxKeySize = 1 << 20;  // 1 MiB
+constexpr size_t kMaxValueSize = 32 * (1 << 20);  // 32 MiB
+
 enum class MessageType : uint16_t {
-  kPing = 1,
-  kPong = 2,
+  kEcho = 1,
+  kGet = 2,
+  kPut = 3,
+  kDelete = 4,
+  kAck = 5,
+  kData = 6,
 };
 
-size_t ReadUint16(absl::Span<uint8_t> b, size_t offset, uint16_t* n);
-
-size_t ReadUint64(absl::Span<uint8_t> b, size_t offset, uint64_t* n);
-
-size_t ReadMessageType(absl::Span<uint8_t> b, size_t offset, MessageType* type);
+struct Header {
+  MessageType message_type;
+  uint16_t protocol_version;
+  uint32_t payload_size;
+};
 
 }  // namespace server
 }  // namespace fuddle
