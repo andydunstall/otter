@@ -12,6 +12,3 @@ top of [RocksDB](https://rocksdb.org/). It uses
 [Puddle](https://github.com/andydunstall/otter/tree/main/puddle) which is a
 lightweight C++ asynchronous networking library build with Boost fibers and
 `io_uring`.
-
-# Next
-Working on replacing RocksDB with a custom storage engine.
