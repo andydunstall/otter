@@ -11,6 +11,8 @@ namespace puddle {
 // Buffer contains a buffer to write read bytes to.
 //
 // It is split into consumed, committed and free bytes.
+//
+// TODO(andydunstall): Remove
 class Buffer {
  public:
   Buffer(size_t capacity = 256);

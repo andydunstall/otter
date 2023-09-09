@@ -2,21 +2,26 @@ package otter
 
 import (
 	"fmt"
-	"io"
 	"net"
-	"time"
+)
+
+const (
+	defaultWriterBufSize = 1 << 14 // 16 KiB
+	defaultReaderBufSize = 1 << 14 // 16 KiB
 )
 
 var (
 	ErrNotFound = fmt.Errorf("not found")
 )
 
-type Fuddle struct {
-	conn net.Conn
-	buf  []byte
+type Otter struct {
+	conn   net.Conn
+	buf    []byte
+	writer *writer
+	reader *reader
 }
 
-func Connect(addr string, opts ...Option) (*Fuddle, error) {
+func Connect(addr string, opts ...Option) (*Otter, error) {
 	options := defaultOptions()
 	for _, opt := range opts {
 		opt.apply(options)
@@ -26,50 +31,36 @@ func Connect(addr string, opts ...Option) (*Fuddle, error) {
 	if err != nil {
 		return nil, fmt.Errorf("dial: %w", err)
 	}
-	return &Fuddle{
-		conn: conn,
-		buf:  make([]byte, 2048),
+	return &Otter{
+		conn:   conn,
+		buf:    make([]byte, 2048),
+		writer: newWriter(conn, defaultWriterBufSize),
+		reader: newReader(conn, defaultReaderBufSize),
 	}, nil
 }
 
-func (c *Fuddle) Get(key string) (string, error) {
-	header := Header{
-		MessageType: MessageTypeGet,
-		Version:     ProtocolVersion,
-		PayloadSize: uint32(Uint32Size + len(key)),
+func (c *Otter) Get(key string) (string, error) {
+	if err := c.writer.WriteHeader(MessageTypeGet); err != nil {
+		return "", fmt.Errorf("get: %w", err)
 	}
-
-	builder := NewRequestBuilder(c.conn)
-	builder.WriteHeader(header)
-	builder.WriteString(key)
-	if err := builder.Flush(); err != nil {
+	if err := c.writer.WriteString(key); err != nil {
+		return "", fmt.Errorf("get: %w", err)
+	}
+	if err := c.writer.Flush(); err != nil {
 		return "", fmt.Errorf("get: %w", err)
 	}
 
-	b := c.buf[:HeaderSize]
-	if _, err := io.ReadFull(c.conn, b); err != nil {
-		return "", fmt.Errorf("get: read: %w", err)
+	messageType, err := c.reader.ReadHeader()
+	if err != nil {
+		return "", fmt.Errorf("get: %w", err)
+	}
+	if messageType != MessageTypeData {
+		return "", fmt.Errorf("get: unexpected response type: %d", messageType)
 	}
 
-	parser := NewParser(b)
-	header, _ = parser.ReadHeader()
-
-	if header.MessageType != MessageTypeData {
-		return "", fmt.Errorf("get: unexpected response type: %d", header.MessageType)
-	}
-	if int(header.PayloadSize) > len(c.buf) {
-		return "", fmt.Errorf("get: payload too large: %d", header.PayloadSize)
-	}
-
-	b = c.buf[:header.PayloadSize]
-	if _, err := io.ReadFull(c.conn, b); err != nil {
-		return "", fmt.Errorf("get: read: %w", err)
-	}
-	parser = NewParser(b)
-	code, ok := parser.ReadUint16()
-	if !ok {
-		// We've read the whole payload so should have sufficient data.
-		return "", fmt.Errorf("get: failed to read response")
+	code, err := c.reader.ReadUint16()
+	if err != nil {
+		return "", fmt.Errorf("get: %w", err)
 	}
 	if code != StatusCodeOK {
 		if code == StatusCodeNotFound {
@@ -78,193 +69,88 @@ func (c *Fuddle) Get(key string) (string, error) {
 		return "", fmt.Errorf("get: failed to get value: status: %d", code)
 	}
 
-	s, ok := parser.ReadString()
-	if !ok {
-		// We've read the whole payload so should have sufficient data.
-		return "", fmt.Errorf("get: failed to read response")
+	v, err := c.reader.ReadString()
+	if err != nil {
+		return "", fmt.Errorf("get: %w", err)
 	}
-	return s, nil
+	return v, nil
 }
 
-func (c *Fuddle) Put(key string, value string) error {
-	header := Header{
-		MessageType: MessageTypePut,
-		Version:     ProtocolVersion,
-		PayloadSize: uint32(Uint32Size + len(key) + Uint32Size + len(value)),
+func (c *Otter) Put(key string, value string) error {
+	if err := c.writer.WriteHeader(MessageTypePut); err != nil {
+		return fmt.Errorf("put: %w", err)
 	}
-
-	builder := NewRequestBuilder(c.conn)
-	builder.WriteHeader(header)
-	builder.WriteString(key)
-	builder.WriteString(value)
-	if err := builder.Flush(); err != nil {
+	if err := c.writer.WriteString(key); err != nil {
+		return fmt.Errorf("put: %w", err)
+	}
+	if err := c.writer.WriteString(value); err != nil {
+		return fmt.Errorf("put: %w", err)
+	}
+	if err := c.writer.Flush(); err != nil {
 		return fmt.Errorf("put: %w", err)
 	}
 
-	b := c.buf[:HeaderSize]
-	if _, err := io.ReadFull(c.conn, b); err != nil {
-		return fmt.Errorf("put: read: %w", err)
+	messageType, err := c.reader.ReadHeader()
+	if err != nil {
+		return fmt.Errorf("put: %w", err)
+	}
+	if messageType != MessageTypeAck {
+		return fmt.Errorf("put: unexpected response type: %d", messageType)
 	}
 
-	parser := NewParser(b)
-	header, _ = parser.ReadHeader()
-
-	if header.MessageType != MessageTypeAck {
-		return fmt.Errorf("put: unexpected response type: %d", header.MessageType)
-	}
-	if int(header.PayloadSize) > len(c.buf) {
-		return fmt.Errorf("get: payload too large: %d", header.PayloadSize)
-	}
-
-	b = c.buf[:header.PayloadSize]
-	if _, err := io.ReadFull(c.conn, b); err != nil {
-		return fmt.Errorf("get: read: %w", err)
-	}
-	parser = NewParser(b)
-	code, ok := parser.ReadUint16()
-	if !ok {
-		// We've read the whole payload so should have sufficient data.
-		return fmt.Errorf("get: failed to read response")
+	code, err := c.reader.ReadUint16()
+	if err != nil {
+		return fmt.Errorf("put: %w", err)
 	}
 	if code != StatusCodeOK {
-		return fmt.Errorf("get: failed to get value: status: %d", code)
+		return fmt.Errorf("put: failed to put value: status: %d", code)
 	}
 	return nil
 }
 
-func (c *Fuddle) Delete(key string) error {
-	header := Header{
-		MessageType: MessageTypeDelete,
-		Version:     ProtocolVersion,
-		PayloadSize: uint32(Uint32Size + len(key)),
+func (c *Otter) Delete(key string) error {
+	if err := c.writer.WriteHeader(MessageTypeDelete); err != nil {
+		return fmt.Errorf("delete: %w", err)
+	}
+	if err := c.writer.WriteString(key); err != nil {
+		return fmt.Errorf("delete: %w", err)
+	}
+	if err := c.writer.Flush(); err != nil {
+		return fmt.Errorf("delete: %w", err)
 	}
 
-	builder := NewRequestBuilder(c.conn)
-	builder.WriteHeader(header)
-	builder.WriteString(key)
-	if err := builder.Flush(); err != nil {
-		return fmt.Errorf("put: %w", err)
+	messageType, err := c.reader.ReadHeader()
+	if err != nil {
+		return fmt.Errorf("delete: %w", err)
+	}
+	if messageType != MessageTypeAck {
+		return fmt.Errorf("delete: unexpected response type: %d", messageType)
 	}
 
-	b := c.buf[:HeaderSize]
-	if _, err := io.ReadFull(c.conn, b); err != nil {
-		return fmt.Errorf("put: read: %w", err)
-	}
-
-	parser := NewParser(b)
-	header, _ = parser.ReadHeader()
-
-	if header.MessageType != MessageTypeAck {
-		return fmt.Errorf("put: unexpected response type: %d", header.MessageType)
-	}
-	if int(header.PayloadSize) > len(c.buf) {
-		return fmt.Errorf("get: payload too large: %d", header.PayloadSize)
-	}
-
-	b = c.buf[:header.PayloadSize]
-	if _, err := io.ReadFull(c.conn, b); err != nil {
-		return fmt.Errorf("get: read: %w", err)
-	}
-	parser = NewParser(b)
-	code, ok := parser.ReadUint16()
-	if !ok {
-		// We've read the whole payload so should have sufficient data.
-		return fmt.Errorf("get: failed to read response")
+	code, err := c.reader.ReadUint16()
+	if err != nil {
+		return fmt.Errorf("delete: %w", err)
 	}
 	if code != StatusCodeOK {
-		return fmt.Errorf("get: failed to get value: status: %d", code)
+		return fmt.Errorf("delete: failed to delete value: status: %d", code)
 	}
 	return nil
 }
 
-func (c *Fuddle) Ping() (int64, error) {
-	header := Header{
-		MessageType: MessageTypeEcho,
-		Version:     ProtocolVersion,
-		PayloadSize: Uint64Size,
+func (c *Otter) Ping() error {
+	if err := c.writer.WriteHeader(MessageTypePing); err != nil {
+		return fmt.Errorf("ping: %w", err)
+	}
+	if err := c.writer.Flush(); err != nil {
+		return fmt.Errorf("ping: %w", err)
 	}
 
-	builder := NewRequestBuilder(c.conn)
-	builder.WriteHeader(header)
-	builder.WriteUint64(uint64(time.Now().UnixMilli()))
-	if err := builder.Flush(); err != nil {
-		return 0, fmt.Errorf("ping: %w", err)
+	messageType, err := c.reader.ReadHeader()
+	if err != nil {
+		return fmt.Errorf("ping: %w", err)
 	}
-
-	b := c.buf[:HeaderSize]
-	if _, err := io.ReadFull(c.conn, b); err != nil {
-		return 0, fmt.Errorf("ping: read: %w", err)
-	}
-
-	parser := NewParser(b)
-	header, _ = parser.ReadHeader()
-
-	// TODO check version and message type
-	// TODO check payload size fits in buf
-
-	if int(header.PayloadSize) > len(c.buf) {
-		return 0, fmt.Errorf("ping: payload too large: %d", header.PayloadSize)
-	}
-
-	b = c.buf[:header.PayloadSize]
-	if _, err := io.ReadFull(c.conn, b); err != nil {
-		return 0, fmt.Errorf("ping: read: %w", err)
-	}
-	parser = NewParser(b)
-	n, ok := parser.ReadUint64()
-	if !ok {
-		// TODO
-	}
-
-	return time.Now().UnixMilli() - int64(n), nil
-}
-
-func (c *Fuddle) Echo(m []byte) error {
-	header := Header{
-		MessageType: MessageTypeEcho,
-		Version:     ProtocolVersion,
-		PayloadSize: uint32(len(m)),
-	}
-
-	builder := NewRequestBuilder(c.conn)
-	builder.WriteHeader(header)
-	builder.WriteRawBytes(m)
-	if err := builder.Flush(); err != nil {
-		return fmt.Errorf("echo: %w", err)
-	}
-
-	b := c.buf[:HeaderSize]
-	if _, err := io.ReadFull(c.conn, b); err != nil {
-		return fmt.Errorf("echo: read: %w", err)
-	}
-
-	parser := NewParser(b)
-	header, _ = parser.ReadHeader()
-
-	// TODO check version and message type
-	// TODO check payload size fits in buf
-
-	if int(header.PayloadSize) > len(c.buf) {
-		return fmt.Errorf("echo: payload too large: %d", header.PayloadSize)
-	}
-
-	b = c.buf[:header.PayloadSize]
-	if _, err := io.ReadFull(c.conn, b); err != nil {
-		return fmt.Errorf("echo: read: %w", err)
-	}
-	parser = NewParser(b)
-	b, ok := parser.ReadRawBytes(int(header.PayloadSize))
-	if !ok {
-		// TODO
-	}
-
-	if len(b) != len(m) {
-		return fmt.Errorf("echo: request and response don't match")
-	}
-	for i := 0; i != len(m); i++ {
-		if b[i] != m[i] {
-			return fmt.Errorf("echo: request and response don't match")
-		}
+	if messageType != MessageTypePong {
+		return fmt.Errorf("ping: unexpected response type: %d", messageType)
 	}
 	return nil
 }

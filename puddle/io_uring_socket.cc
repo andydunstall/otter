@@ -77,11 +77,9 @@ absl::Status IoUringSocket::Connect(const std::string& ip, uint64_t port) {
   return absl::OkStatus();
 }
 
-absl::StatusOr<size_t> IoUringSocket::Read(Buffer* buf) {
-  auto write_buf = buf->write_buf();
-
+absl::StatusOr<size_t> IoUringSocket::Read(absl::Span<uint8_t> buf) {
   std::unique_ptr<boost::fibers::promise<int>> promise =
-      shard_->RequestRead(fd_, write_buf.data(), write_buf.size(), 0);
+      shard_->RequestRead(fd_, buf.data(), buf.size(), 0);
   boost::fibers::future<int> future = promise->get_future();
   future.wait();
   ssize_t read_n = future.get();

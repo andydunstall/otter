@@ -26,7 +26,7 @@ void EchoListener::Connection(std::unique_ptr<puddle::Socket> conn) {
 
   puddle::Buffer recv_buf;
   while (true) {
-    absl::StatusOr<size_t> read_n = conn->Read(&recv_buf);
+    absl::StatusOr<size_t> read_n = conn->Read(recv_buf.write_buf());
     if (!read_n.ok()) {
       return;
     }
@@ -79,7 +79,7 @@ absl::Status Client(const std::string& host, uint16_t port) {
   LOG(INFO) << "written " << *write_status;
 
   puddle::Buffer buf;
-  absl::StatusOr<size_t> read_status = socket->Read(&buf);
+  absl::StatusOr<size_t> read_status = socket->Read(buf.write_buf());
   if (!read_status.ok()) {
     return read_status.status();
   }

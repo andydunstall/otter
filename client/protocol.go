@@ -3,18 +3,17 @@ package otter
 type MessageType uint16
 
 const (
-	MessageTypeEcho   MessageType = 1
-	MessageTypeGet    MessageType = 2
-	MessageTypePut    MessageType = 3
-	MessageTypeDelete MessageType = 4
-	MessageTypeAck    MessageType = 5
-	MessageTypeData   MessageType = 6
+	MessageTypePing   MessageType = 1
+	MessageTypePong   MessageType = 2
+	MessageTypeGet    MessageType = 3
+	MessageTypePut    MessageType = 4
+	MessageTypeDelete MessageType = 5
+	MessageTypeAck    MessageType = 6
+	MessageTypeData   MessageType = 7
 )
 
 const (
 	ProtocolVersion uint16 = 1
-
-	HeaderSize = 8
 
 	Uint16Size = 2
 	Uint32Size = 4
@@ -24,9 +23,3 @@ const (
 	StatusCodeOK       = 0
 	StatusCodeNotFound = 5
 )
-
-type Header struct {
-	MessageType MessageType
-	Version     uint16
-	PayloadSize uint32
-}

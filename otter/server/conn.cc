@@ -3,89 +3,47 @@
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/strings/str_format.h"
-#include "otter/server/parser.h"
-#include "otter/server/protocol.h"
-#include "otter/server/reply_builder.h"
 
 namespace otter {
 namespace server {
 
 Conn::Conn(std::unique_ptr<puddle::Socket> socket,
            std::shared_ptr<storage::Storage> storage)
-    : socket_{std::move(socket)}, storage_{storage} {}
+    : socket_{std::move(socket)},
+      reader_{socket_.get(), 256, 16384},
+      writer_{socket_.get(), 256},
+      storage_{storage} {}
 
 void Conn::ReadLoop() {
-  puddle::Buffer recv_buf;
   while (true) {
-    absl::StatusOr<size_t> read_n = socket_->Read(&recv_buf);
-    if (!read_n.ok()) {
-      DLOG(INFO) << "conn: read loop: read error; err=" << read_n.status();
+    absl::StatusOr<MessageType> message_type = reader_.ReadHeader();
+    if (!message_type.ok()) {
+      DLOG(INFO) << "conn: read loop: read error; err="
+                 << message_type.status();
       return;
-    }
-    CHECK(*read_n > 0);
-    recv_buf.Commit(*read_n);
-
-    DLOG(INFO) << "conn: read loop: read bytes; bytes=" << *read_n;
-
-    Parser parser{recv_buf.committed_buf()};
-
-    absl::StatusOr<std::optional<Header>> header_status = parser.ReadHeader();
-    if (!header_status.ok()) {
-      LOG(WARNING) << "conn: read loop: failed to read header "
-                   << header_status.status();
-      return;
-    }
-    std::optional<Header> header = *header_status;
-    if (!header) {
-      // Insuffient bytes to read header.
-      DLOG(INFO) << "conn: read loop: insufficient bytes to read header";
-      // TODO(andydunstall) grow if recv buf full
-      continue;
-    }
-    if (header->payload_size > kMaxPayloadSize) {
-      LOG(WARNING) << "conn: read loop: payload size exceeds limit";
-      if (recv_buf.full()) {
-        recv_buf.Reserve(recv_buf.capacity() * 2);
-      }
-      return;
-    }
-    if (recv_buf.committed_buf().size() <
-        parser.offset() + header->payload_size) {
-      // Insuffient bytes to read payload.
-      DLOG(INFO) << "conn: read loop: insufficient bytes to read payload";
-      if (recv_buf.full()) {
-        recv_buf.Reserve(recv_buf.capacity() * 2);
-      }
-      continue;
     }
 
     DLOG(INFO) << "conn: read loop: read header; message_type="
-               << static_cast<uint16_t>(header->message_type)
-               << "; payload_size=" << header->payload_size;
-
-    absl::Span<uint8_t> payload(
-        recv_buf.committed_buf().begin() + parser.offset(),
-        header->payload_size);
-    recv_buf.Consume(parser.offset() + header->payload_size);
+               << static_cast<uint16_t>(*message_type);
 
     absl::Status status;
-    switch (header->message_type) {
-      case MessageType::kEcho:
-        status = Echo(payload);
+    switch (*message_type) {
+      case MessageType::kPing:
+        status = Ping();
         break;
       case MessageType::kGet:
-        status = Get(payload);
+        status = Get();
         break;
       case MessageType::kPut:
-        status = Put(payload);
+        status = Put();
         break;
       case MessageType::kDelete:
-        status = Delete(payload);
+        status = Delete();
         break;
       default:
         status = absl::InvalidArgumentError(
             absl::StrFormat("unsupported request type: %d",
-                            static_cast<uint16_t>(header->message_type)));
+                            static_cast<uint16_t>(*message_type)));
         break;
     }
     if (!status.ok()) {
@@ -95,145 +53,104 @@ void Conn::ReadLoop() {
   }
 }
 
-absl::Status Conn::Echo(absl::Span<uint8_t> b) {
-  Header header;
-  header.message_type = MessageType::kEcho;
-  header.protocol_version = 1;
-  header.payload_size = b.size();
+absl::Status Conn::Ping() {
+  DLOG(INFO) << "ping";
 
-  DLOG(INFO) << "conn: echo: send echo response; message_type="
-             << static_cast<uint16_t>(header.message_type)
-             << "; payload_size=" << header.payload_size;
-
-  // Echo back the payload.
-  ReplyBuilder reply_builder{socket_.get()};
-  reply_builder.WriteHeader(header);
-  reply_builder.WriteRawBytes(b);
-  return reply_builder.Flush();
+  absl::Status status;
+  status = writer_.WriteHeader(MessageType::kPong);
+  if (!status.ok()) {
+    return status;
+  }
+  return writer_.Flush();
 }
 
-absl::Status Conn::Get(absl::Span<uint8_t> b) {
-  Parser parser{b};
-  absl::StatusOr<std::optional<std::string_view>> key_status =
-      parser.ReadString();
-  if (!key_status.ok()) {
-    return key_status.status();
+absl::Status Conn::Get() {
+  absl::StatusOr<std::string> key = reader_.ReadString();
+  if (!key.ok()) {
+    return key.status();
   }
-
-  std::optional<std::string_view> key = *key_status;
-  if (!key) {
-    // We've read the whole payload so if we cannot read the requested string
-    // size if means there is a protocol error.
-    return absl::InvalidArgumentError("insufficient bytes to read key");
-  }
-
-  ReplyBuilder reply_builder{socket_.get()};
-  Header header;
-  header.message_type = MessageType::kData;
-  header.protocol_version = 1;
 
   absl::StatusOr<std::string> value = storage_->Get(*key);
+
+  absl::Status status;
+  status = writer_.WriteHeader(MessageType::kData);
+  if (!status.ok()) {
+    return status;
+  }
 
   if (value.ok()) {
     DLOG(INFO) << "conn: get: key=" << *key << "; value=" << *value;
 
-    header.payload_size = sizeof(uint16_t) + sizeof(uint32_t) + value->size();
-    reply_builder.WriteHeader(header);
-
     // Status code.
-    reply_builder.WriteUint16(static_cast<uint16_t>(absl::StatusCode::kOk));
+    status = writer_.WriteUint16(static_cast<uint16_t>(absl::StatusCode::kOk));
+    if (!status.ok()) {
+      return status;
+    }
     // Value.
-    reply_builder.WriteString(*value);
+    status = writer_.WriteString(*value);
+    if (!status.ok()) {
+      return status;
+    }
   } else {
     DLOG(INFO) << "conn: get: key=" << *key << "; status=" << value.status();
 
-    header.payload_size = sizeof(uint16_t);
-    reply_builder.WriteHeader(header);
-
     // Status code.
-    reply_builder.WriteUint16(static_cast<uint16_t>(value.status().code()));
+    status = writer_.WriteUint16(static_cast<uint16_t>(value.status().code()));
+    if (!status.ok()) {
+      return status;
+    }
   }
 
-  return reply_builder.Flush();
+  return writer_.Flush();
 }
 
-absl::Status Conn::Put(absl::Span<uint8_t> b) {
-  Parser parser{b};
-  absl::StatusOr<std::optional<std::string_view>> key_status =
-      parser.ReadString();
-  if (!key_status.ok()) {
-    return key_status.status();
-  }
-  std::optional<std::string_view> key = *key_status;
-  if (!key) {
-    // We've read the whole payload so if we cannot read the requested string
-    // size if means there is a protocol error.
-    return absl::InvalidArgumentError("insufficient bytes to read key");
-  }
-  if (key->size() > kMaxKeySize) {
-    return absl::InvalidArgumentError("key size exceeds limit");
+absl::Status Conn::Put() {
+  absl::StatusOr<std::string> key = reader_.ReadString();
+  if (!key.ok()) {
+    return key.status();
   }
 
-  absl::StatusOr<std::optional<std::string_view>> value_status =
-      parser.ReadString();
-  if (!value_status.ok()) {
-    return value_status.status();
-  }
-  std::optional<std::string_view> value = *value_status;
-  if (!value) {
-    // We've read the whole payload so if we cannot read the requested string
-    // size if means there is a protocol error.
-    return absl::InvalidArgumentError("insufficient bytes to read value");
-  }
-  if (value->size() > kMaxValueSize) {
-    return absl::InvalidArgumentError("value size exceeds limit");
+  absl::StatusOr<std::string> value = reader_.ReadString();
+  if (!value.ok()) {
+    return value.status();
   }
 
-  ReplyBuilder reply_builder{socket_.get()};
-  Header header;
-  header.message_type = MessageType::kAck;
-  header.protocol_version = 1;
-  header.payload_size = sizeof(uint16_t);
+  DLOG(INFO) << "conn: put: key=" << *key << "; value=" << *value;
 
-  absl::Status status = storage_->Put(*key, *value);
+  absl::Status put_status = storage_->Put(*key, *value);
 
-  DLOG(INFO) << "conn: put: key=" << *key << "; value=" << *value
-             << "; status=" << status;
-
-  reply_builder.WriteHeader(header);
-  // Status code.
-  reply_builder.WriteUint16(static_cast<uint16_t>(status.code()));
-  return reply_builder.Flush();
+  absl::Status status;
+  status = writer_.WriteHeader(MessageType::kAck);
+  if (!status.ok()) {
+    return status;
+  }
+  status = writer_.WriteUint16(static_cast<uint16_t>(put_status.code()));
+  if (!status.ok()) {
+    return status;
+  }
+  return writer_.Flush();
 }
 
-absl::Status Conn::Delete(absl::Span<uint8_t> b) {
-  Parser parser{b};
-  absl::StatusOr<std::optional<std::string_view>> key_status =
-      parser.ReadString();
-  if (!key_status.ok()) {
-    return key_status.status();
-  }
-  std::optional<std::string_view> key = *key_status;
-  if (!key) {
-    // We've read the whole payload so if we cannot read the requested string
-    // size if means there is a protocol error.
-    return absl::InvalidArgumentError("insufficient bytes to read key");
+absl::Status Conn::Delete() {
+  absl::StatusOr<std::string> key = reader_.ReadString();
+  if (!key.ok()) {
+    return key.status();
   }
 
-  ReplyBuilder reply_builder{socket_.get()};
-  Header header;
-  header.message_type = MessageType::kAck;
-  header.protocol_version = 1;
-  header.payload_size = sizeof(uint16_t);
+  DLOG(INFO) << "conn: delete: key=" << *key;
 
-  absl::Status status = storage_->Delete(*key);
+  absl::Status delete_status = storage_->Delete(*key);
 
-  DLOG(INFO) << "conn: delete: key=" << *key << "; status=" << status;
-
-  reply_builder.WriteHeader(header);
-  // Status code.
-  reply_builder.WriteUint16(static_cast<uint16_t>(status.code()));
-  return reply_builder.Flush();
+  absl::Status status;
+  status = writer_.WriteHeader(MessageType::kAck);
+  if (!status.ok()) {
+    return status;
+  }
+  status = writer_.WriteUint16(static_cast<uint16_t>(delete_status.code()));
+  if (!status.ok()) {
+    return status;
+  }
+  return writer_.Flush();
 }
 
 }  // namespace server

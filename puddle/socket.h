@@ -5,12 +5,14 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "puddle/buffer.h"
+#include "puddle/reader.h"
+#include "puddle/writer.h"
 
 namespace puddle {
 
 class Shard;
 
-class Socket {
+class Socket : public Reader, public Writer {
  public:
   Socket(int fd = -1);
 
@@ -23,10 +25,6 @@ class Socket {
   virtual std::unique_ptr<Socket> Accept() = 0;
 
   virtual absl::Status Connect(const std::string& ip, uint64_t port) = 0;
-
-  virtual absl::StatusOr<size_t> Read(Buffer* buf) = 0;
-
-  virtual absl::StatusOr<size_t> Write(const absl::Span<uint8_t>& buf) = 0;
 
  protected:
   int fd_;

@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include "otter/server/reader.h"
+#include "otter/server/writer.h"
 #include "otter/storage/storage.h"
 #include "puddle/socket.h"
 
@@ -16,15 +18,19 @@ class Conn {
   void ReadLoop();
 
  private:
-  absl::Status Echo(absl::Span<uint8_t> b);
+  absl::Status Ping();
 
-  absl::Status Get(absl::Span<uint8_t> b);
+  absl::Status Get();
 
-  absl::Status Put(absl::Span<uint8_t> b);
+  absl::Status Put();
 
-  absl::Status Delete(absl::Span<uint8_t> b);
+  absl::Status Delete();
 
   std::unique_ptr<puddle::Socket> socket_;
+
+  Reader reader_;
+
+  Writer writer_;
 
   std::shared_ptr<storage::Storage> storage_;
 };

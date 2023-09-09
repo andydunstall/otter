@@ -11,9 +11,19 @@ func TestProtocol_Ping(t *testing.T) {
 	conn, err := otter.Connect("localhost:8119")
 	require.NoError(t, err)
 
-	_, err = conn.Ping()
+	 err = conn.Ping()
 	require.NoError(t, err)
 }
+
+// func TestProtocol_PingMany(t *testing.T) {
+// 	conn, err := otter.Connect("localhost:8119")
+// 	require.NoError(t, err)
+// 
+//   for i := 0; i != 100; i++ {
+//      err = conn.Ping()
+//     require.NoError(t, err)
+//   }
+// }
 
 func TestProtocol_PingOneBytePerWrite(t *testing.T) {
 	conn, err := otter.Connect(
@@ -22,14 +32,6 @@ func TestProtocol_PingOneBytePerWrite(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = conn.Ping()
-	require.NoError(t, err)
-}
-
-func TestProtocol_Echo(t *testing.T) {
-	conn, err := otter.Connect("localhost:8119")
-	require.NoError(t, err)
-
-	err = conn.Echo([]byte{1, 2, 3, 4, 5})
+	err = conn.Ping()
 	require.NoError(t, err)
 }
