@@ -15,7 +15,7 @@ Reader::Reader(puddle::Reader* reader, size_t init_buf_size,
 absl::StatusOr<uint16_t> Reader::ReadUint16() {
   if (pending_size() < sizeof(uint16_t)) {
     // If we don't have enough pending bytes, read enough to parse.
-    absl::Status status = ReadAtLeast(sizeof(uint16_t));
+    absl::Status status = ReadAtLeast(sizeof(uint16_t) - pending_size());
     if (!status.ok()) {
       return status;
     }
@@ -31,7 +31,7 @@ absl::StatusOr<uint16_t> Reader::ReadUint16() {
 absl::StatusOr<uint32_t> Reader::ReadUint32() {
   if (pending_size() < sizeof(uint32_t)) {
     // If we don't have enough pending bytes, read enough to parse.
-    absl::Status status = ReadAtLeast(sizeof(uint32_t));
+    absl::Status status = ReadAtLeast(sizeof(uint32_t) - pending_size());
     if (!status.ok()) {
       return status;
     }
@@ -78,7 +78,7 @@ absl::StatusOr<std::string> Reader::ReadString() {
 
   if (pending_size() < *size) {
     // If we don't have enough pending bytes, read enough to parse.
-    absl::Status status = ReadAtLeast(*size);
+    absl::Status status = ReadAtLeast(*size - pending_size());
     if (!status.ok()) {
       return status;
     }
@@ -94,13 +94,24 @@ absl::StatusOr<std::string> Reader::ReadString() {
 }
 
 absl::Status Reader::ReadAtLeast(size_t n) {
-  // TODO(andydunstall) need to shift bytes down to avoid filling buffer -
-  // shift if over half full
-  // TODO(andydunstall) if buffer over half full, or if n exceeds the buffer
-  // size, extend up to some limit (copy buffer.h)
+  DLOG(INFO) << "reader: read at least; n=" << n;
+
+  // If over half the bytes in buf_ are unused, shift the bytes to the start.
+  if (start_idx_ * 2 > buf_.size()) {
+    DLOG(INFO) << "reader: shifting buffer";
+    memcpy(buf_.data(), buf_.data() + start_idx_, end_idx_ - start_idx_);
+    end_idx_ -= start_idx_;
+    start_idx_ = 0;
+  }
+
+  if (buf_.size() - end_idx_ < n) {
+    DLOG(INFO) << "reader: resizing buffer; size=" << end_idx_ + n;
+    buf_.resize(end_idx_ + n);
+  }
 
   size_t read = 0;
   while (read < n) {
+    DLOG(INFO) << "reader: read; n=" << buf_.size() - end_idx_;
     absl::StatusOr<size_t> nn = reader_->Read(
         absl::Span<uint8_t>(buf_.data() + end_idx_, buf_.size() - end_idx_));
     if (!nn.ok()) {

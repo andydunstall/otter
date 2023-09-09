@@ -65,7 +65,7 @@ func benchConn(run int, conn int) {
 
 	s := time.Now()
 	for range keys {
-		if _, err := c.Ping(); err != nil {
+		if err := c.Ping(); err != nil {
 			panic(err)
 		}
 	}
@@ -155,106 +155,6 @@ func init() {
 func main() {
 	command.Execute()
 }
-
-// func main() {
-//   var redisFlag = flag.Bool("redis", false, "use redis protocol")
-//   flag.Parse()
-//
-//   var wg sync.WaitGroup
-//
-//   for i := 0; i != 10; i++ {
-//     wg.Add(1)
-//
-//     i := i
-//     go func() {
-//       defer wg.Done()
-//
-//       if *redisFlag {
-//         runRedis(i)
-//       } else {
-//         runOtter(i)
-//       }
-//     }()
-//   }
-//
-//   wg.Wait()
-// }
-//
-// func runOtter(run int) {
-// 	conn, err := otter.Connect("localhost:8119")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-//
-//   s := time.Now()
-//
-// 	value := uuid.New().String()
-// 	for i := 0; i != 10000; i++ {
-//     if err := conn.Put(fmt.Sprintf("key:%d:%d", run, i), value); err != nil {
-// 			panic(err)
-// 		}
-// 	}
-//
-//   fmt.Println("run", run, "=", time.Since(s))
-//
-//   s = time.Now()
-//
-// 	for i := 0; i != 10000; i++ {
-//     if _, err := conn.Get(fmt.Sprintf("key:%d:%d", run, i)); err != nil {
-// 			panic(err)
-// 		}
-// 	}
-//
-//   fmt.Println("run", run, "=", time.Since(s))
-//
-//   s = time.Now()
-//
-// 	for i := 0; i != 10000; i++ {
-//     if err := conn.Delete(fmt.Sprintf("key:%d:%d", run, i)); err != nil {
-// 			panic(err)
-// 		}
-// 	}
-//
-//   fmt.Println("run", run, "=", time.Since(s))
-// }
-//
-// func runRedis(run int) {
-// 	conn, err := redis.Connect("localhost:8119")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-//
-//   s := time.Now()
-//
-// 	value := uuid.New().String()
-// 	for i := 0; i != 10000; i++ {
-//     if err := conn.Put(fmt.Sprintf("key:%d:%d", run, i), value); err != nil {
-// 			panic(err)
-// 		}
-// 	}
-//
-//   fmt.Println("run", run, "=", time.Since(s))
-//
-//   s = time.Now()
-//
-// 	for i := 0; i != 10000; i++ {
-//     if _, err := conn.Get(fmt.Sprintf("key:%d:%d", run, i)); err != nil {
-// 			panic(err)
-// 		}
-// 	}
-//
-//   fmt.Println("run", run, "=", time.Since(s))
-//
-//   s = time.Now()
-//
-// 	for i := 0; i != 10000; i++ {
-//     if err := conn.Delete(fmt.Sprintf("key:%d:%d", run, i)); err != nil {
-// 			panic(err)
-// 		}
-// 	}
-//
-//   fmt.Println("run", run, "=", time.Since(s))
-// }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 

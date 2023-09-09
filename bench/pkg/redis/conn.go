@@ -46,9 +46,9 @@ func (c *Conn) Delete(key string) error {
 	return nil
 }
 
-func (c *Conn) Ping() (int64, error) {
+func (c *Conn) Ping() error {
 	if err := c.rdb.Ping(context.Background()).Err(); err != nil {
-		return 0, fmt.Errorf("redis: ping: %w", err)
+		return fmt.Errorf("redis: ping: %w", err)
 	}
-	return 0, nil
+	return nil
 }

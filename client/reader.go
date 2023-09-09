@@ -119,10 +119,15 @@ func (r *reader) pendingSize() int {
 }
 
 func (r *reader) readAtLeast(n int) error {
-	// TODO(andydunstall) need to shift bytes down to avoid filling buffer -
-	// shift if over half full
 	// TODO(andydunstall) if buffer over half full, or if n exceeds the buffer
 	// size, extend up to some limit (copy buffer.h)
+
+	// If over half the bytes in r.buf are unused, shift the bytes to the start.
+	if r.startIdx*2 > len(r.buf) {
+		copy(r.buf, r.buf[r.startIdx:r.endIdx])
+		r.endIdx -= r.startIdx
+		r.startIdx = 0
+	}
 
 	n, err := io.ReadAtLeast(r.r, r.buf[r.endIdx:], n)
 	if err != nil {

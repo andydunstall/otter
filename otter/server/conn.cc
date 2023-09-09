@@ -10,8 +10,8 @@ namespace server {
 Conn::Conn(std::unique_ptr<puddle::Socket> socket,
            std::shared_ptr<storage::Storage> storage)
     : socket_{std::move(socket)},
-      reader_{socket_.get(), 256, 16384},
-      writer_{socket_.get(), 256},
+      reader_{socket_.get(), 2048, 16384},
+      writer_{socket_.get(), 2048},
       storage_{storage} {}
 
 void Conn::ReadLoop() {
