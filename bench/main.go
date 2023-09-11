@@ -23,6 +23,13 @@ type Config struct {
 	Protocol    string
 }
 
+type benchResults struct {
+	Ping   time.Duration
+	Put    time.Duration
+	Get    time.Duration
+	Delete time.Duration
+}
+
 var command = &cobra.Command{
 	Use:          "bench (flags)",
 	SilenceUsage: true,
@@ -39,19 +46,38 @@ func run(_ *cobra.Command, _ []string) {
 }
 
 func bench(run int) {
+	var connResults []benchResults
+
 	var wg sync.WaitGroup
 	for i := 0; i != conf.Connections; i++ {
 		i := i
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			benchConn(run, i)
+			connResults = append(connResults, benchConn(run, i))
 		}()
 	}
 	wg.Wait()
+
+	var benchResults benchResults
+	for _, r := range connResults {
+		benchResults.Ping += r.Ping
+		benchResults.Put += r.Put
+		benchResults.Get += r.Get
+		benchResults.Delete += r.Delete
+	}
+	benchResults.Ping = benchResults.Ping / time.Duration(len(connResults))
+	benchResults.Put = benchResults.Put / time.Duration(len(connResults))
+	benchResults.Get = benchResults.Get / time.Duration(len(connResults))
+	benchResults.Delete = benchResults.Delete / time.Duration(len(connResults))
+
+	fmt.Println("run:", run, "ping:", benchResults.Ping)
+	fmt.Println("run:", run, "put:", benchResults.Put)
+	fmt.Println("run:", run, "get:", benchResults.Get)
+	fmt.Println("run:", run, "delete:", benchResults.Delete)
 }
 
-func benchConn(run int, conn int) {
+func benchConn(run int, conn int) benchResults {
 	c, err := connect()
 	if err != nil {
 		panic(err)
@@ -63,6 +89,8 @@ func benchConn(run int, conn int) {
 	}
 	value := randomString(conf.Size)
 
+	connResults := benchResults{}
+
 	s := time.Now()
 	for range keys {
 		if err := c.Ping(); err != nil {
@@ -70,6 +98,7 @@ func benchConn(run int, conn int) {
 		}
 	}
 	fmt.Println("run:", run, "conn:", conn, "ping:", time.Since(s))
+	connResults.Ping = time.Since(s)
 
 	s = time.Now()
 	for _, key := range keys {
@@ -78,6 +107,7 @@ func benchConn(run int, conn int) {
 		}
 	}
 	fmt.Println("run:", run, "conn:", conn, "put:", time.Since(s))
+	connResults.Put = time.Since(s)
 
 	s = time.Now()
 	for _, key := range keys {
@@ -86,6 +116,7 @@ func benchConn(run int, conn int) {
 		}
 	}
 	fmt.Println("run:", run, "conn:", conn, "get:", time.Since(s))
+	connResults.Get = time.Since(s)
 
 	s = time.Now()
 	for _, key := range keys {
@@ -94,6 +125,9 @@ func benchConn(run int, conn int) {
 		}
 	}
 	fmt.Println("run:", run, "conn:", conn, "delete:", time.Since(s))
+	connResults.Delete = time.Since(s)
+
+	return connResults
 }
 
 func connect() (conn.Conn, error) {
