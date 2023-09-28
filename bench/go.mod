@@ -3,9 +3,11 @@ module github.com/otter-io/otter/bench
 go 1.20
 
 require (
+	github.com/HdrHistogram/hdrhistogram-go v1.1.2
 	github.com/otter-io/otter/client v0.0.0
 	github.com/redis/go-redis/v9 v9.1.0
 	github.com/spf13/cobra v1.7.0
+	go.uber.org/atomic v1.11.0
 )
 
 require (
