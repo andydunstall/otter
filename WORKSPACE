@@ -1,4 +1,4 @@
-workspace(name = "otter")
+workspace(name = "puddle")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 

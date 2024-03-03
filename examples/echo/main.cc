@@ -45,6 +45,7 @@ absl::Status Server(const std::string& host, uint16_t port) {
 
   std::shared_ptr<puddle::Shard> shard =
       std::make_shared<puddle::IoUringShard>();
+  boost::fibers::use_scheduling_algorithm<puddle::Scheduler>(shard);
 
   puddle::Server server{shard};
   absl::Status listener_status =
