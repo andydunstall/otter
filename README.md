@@ -3,7 +3,7 @@
 Puddle is a C++ thread-per-core library for asynchronous IO, based on
 `io_uring`.
 
-Note Puddle is only a toy project to learn about experiment with `io_uring`.
+Note Puddle is only a toy project to experiment with `io_uring`.
 
 ## Build
 
