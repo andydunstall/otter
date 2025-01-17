@@ -1,0 +1,2 @@
+build --cxxopt=-std=c++17 --linkopt=-L/usr/local/lib
+# build --cxxopt=-std=c++17 --cxxopt=-O3 --cxxopt=-DNDEBUG --linkopt=-L/usr/local/lib
