@@ -8,6 +8,8 @@ namespace internal {
 
 Context::Context(const std::string& name) : name_{name}, ref_count_{1} {}
 
+Context::~Context() { assert(!ready_hook_.is_linked()); }
+
 void Context::Join() {
   if (terminated_) return;
 

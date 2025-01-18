@@ -1,7 +1,6 @@
 #pragma once
 
-#include <list>
-
+#include "boost/intrusive/list.hpp"
 #include "puddle/reactor/context.h"
 
 namespace puddle {
@@ -13,14 +12,19 @@ class Scheduler {
  public:
   Scheduler();
 
-  size_t ready() const { return ready_queue_.size(); }
+  bool has_ready() const { return !ready_queue_.empty(); }
 
   void AddReady(Context* context);
 
   Context* Next();
 
  private:
-  std::list<Context*> ready_queue_;
+  using ReadyQueueType = boost::intrusive::list<
+      Context,
+      boost::intrusive::member_hook<Context, ReadyHook, &Context::ready_hook_>,
+      boost::intrusive::constant_time_size<false>>;
+
+  ReadyQueueType ready_queue_{};
 };
 
 }  // namespace internal

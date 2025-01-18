@@ -138,7 +138,7 @@ void Reactor::Dispatch() {
     io_uring_submit_and_get_events(&ring_);
     DispatchEvents();
 
-    if (scheduler_.ready() > 0) {
+    if (scheduler_.has_ready()) {
       Yield();
     } else {
       logger_.Debug("block");

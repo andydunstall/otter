@@ -3,6 +3,7 @@
 #include <atomic>
 
 #include "boost/context/fiber.hpp"
+#include "boost/intrusive/list.hpp"
 #include "boost/intrusive_ptr.hpp"
 
 namespace puddle {
@@ -14,10 +15,17 @@ namespace internal {
 
 constexpr size_t kStackSize = 64 * 1024;
 
+class Scheduler;
+
+using ReadyHook = boost::intrusive::list_member_hook<
+    boost::intrusive::link_mode<boost::intrusive::safe_link>>;
+
 // Context represents the a tasks execution state.
 class Context {
  public:
   Context(const std::string& name);
+
+  ~Context();
 
   Context(const Context&) = delete;
   Context& operator=(const Context&) = delete;
@@ -41,7 +49,11 @@ class Context {
   boost::context::fiber context_;
 
  private:
+  friend Scheduler;
+
   std::string name_;
+
+  ReadyHook ready_hook_;
 
   // TODO(andydunstall): Temporary.
   Context* join_wait_;
