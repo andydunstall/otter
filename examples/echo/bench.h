@@ -4,6 +4,7 @@
 #include <mutex>
 
 #include "puddle/log/log.h"
+#include "puddle/pprof/pprof.h"
 #include "puddle/reactor/config.h"
 #include "puddle/stats/histogram.h"
 
@@ -20,6 +21,8 @@ struct Config {
   int clients;
 
   puddle::reactor::Config reactor;
+
+  puddle::pprof::Config pprof;
 
   puddle::log::Config log;
 

@@ -1,3 +1,4 @@
+#include <csignal>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -11,7 +12,17 @@
 
 namespace echo {
 
+void SignalHandler(int signal) {
+  puddle::pprof::Stop();
+  exit(EXIT_SUCCESS);
+}
+
 int Server(const std::vector<std::string>& flags) {
+  // TODO(andydunstall): Not yet handling signals properly, though for now
+  // catch SIGINT/SIGNTERM to flush the profiler.
+  std::signal(SIGINT, SignalHandler);
+  std::signal(SIGTERM, SignalHandler);
+
   std::string path = "";
   bool expand_env = false;
   bool help = false;
@@ -85,6 +96,11 @@ Flags:
 
   puddle::log::Logger logger{"main"};
   logger.Info("starting echo server; addr = {}", config.addr);
+
+  if (config.pprof.path != "") {
+    logger.Info("starting pprof profile; path = {}", config.pprof.path);
+    puddle::pprof::Start(config.pprof);
+  }
 
   puddle::reactor::Pool pool{config.reactor};
   pool.OnAllShards([&] {
@@ -170,6 +186,11 @@ Flags:
   puddle::log::Logger logger{"main"};
   logger.Info("starting echo bench; addr = {}", config.addr);
 
+  if (config.pprof.path != "") {
+    logger.Info("starting pprof profile; path = {}", config.pprof.path);
+    puddle::pprof::Start(config.pprof);
+  }
+
   bench::Benchmark bench{config};
 
   puddle::reactor::Pool pool{config.reactor};
@@ -177,6 +198,8 @@ Flags:
   auto start = std::chrono::high_resolution_clock::now();
   pool.OnAllShards([&bench] { bench.Shard(); });
   auto end = std::chrono::high_resolution_clock::now();
+
+  puddle::pprof::Stop();
 
   auto stats = bench.stats();
   auto duration =

@@ -4,6 +4,7 @@
 
 #include "puddle/log/log.h"
 #include "puddle/net/tcp.h"
+#include "puddle/pprof/pprof.h"
 #include "puddle/reactor/config.h"
 
 namespace echo {
@@ -15,6 +16,8 @@ struct Config {
   puddle::reactor::Config reactor;
 
   puddle::log::Config log;
+
+  puddle::pprof::Config pprof;
 
   void Load(const std::string& path, bool expand_env);
 

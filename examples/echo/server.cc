@@ -65,6 +65,20 @@ void Config::Load(const std::string& path, bool expand_env) {
       }
     }
 
+    if (node["pprof"]) {
+      if (!node["pprof"].IsMap()) {
+        throw puddle::config::Exception{"parse yaml: invalid 'pprof'"};
+      }
+
+      auto pprof_node = node["pprof"];
+      if (pprof_node["path"]) {
+        if (!pprof_node["path"].IsScalar()) {
+          throw puddle::config::Exception{"parse yaml: invalid 'path'"};
+        }
+        pprof.path = pprof_node["path"].as<std::string>();
+      }
+    }
+
     if (node["log"]) {
       if (!node["log"].IsMap()) {
         throw puddle::config::Exception{"parse yaml: invalid 'log'"};

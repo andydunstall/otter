@@ -24,6 +24,7 @@ cc_library(
     deps = [
         "//puddle/config",
         "//puddle/log",
+        "//puddle/pprof",
         "//puddle/net",
         "//puddle/reactor",
         "//puddle/stats",
