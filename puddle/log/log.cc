@@ -18,6 +18,12 @@ std::string_view LevelToString(Level level) {
   return levels[static_cast<int>(level)];
 }
 
+Config Config::Default() {
+  Config config;
+  config.level = Level::kInfo;
+  return config;
+}
+
 Logger::Logger(std::string name, FILE* file) : name_{name}, file_{file} {
   GlobalRegistry()->Register(this);
 }

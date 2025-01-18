@@ -36,6 +36,8 @@ struct Config {
 
   // Overrides the level by logger name.
   std::unordered_map<std::string, Level> overrides;
+
+  static Config Default();
 };
 
 // TODO(andydunstall): Currently uses the default 'FILE*' buffering mode
@@ -94,8 +96,13 @@ class Logger {
     //
     auto f = fmt::format(fmt, std::forward<T>(args)...);
     auto now = std::chrono::system_clock::now();
-    fmt::print(file_, "{}  {:%Y-%m-%d %T} [{}] [shard {}]  - {}\n",
-               LevelToString(level), now, name_, shard::id(), f);
+    if (shard::id() >= 0) {
+      fmt::print(file_, "{}  {:%Y-%m-%d %T} [{}] [shard {}] - {}\n",
+                 LevelToString(level), now, name_, shard::id(), f);
+    } else {
+      fmt::print(file_, "{}  {:%Y-%m-%d %T} [{}] - {}\n", LevelToString(level),
+                 now, name_, f);
+    }
   }
 
   bool IsEnabled(Level level) const noexcept {
