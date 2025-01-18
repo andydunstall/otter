@@ -26,6 +26,8 @@ cc_library(
         "//puddle/log",
         "//puddle/net",
         "//puddle/reactor",
+        "//puddle/stats",
+        "@abseil-cpp//absl/time",
         "@fmt",
     ],
 )

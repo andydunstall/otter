@@ -127,23 +127,10 @@ boost::context::fiber Reactor::Terminate() {
   internal::Context* prev = active_;
   active_ = next;
 
-  // TODO next.SwitchTo();
   std::move(active_->context_).resume_with([prev](boost::context::fiber&& c) {
     prev->context_ = std::move(c);
     return boost::context::fiber{};
   });
-
-  // context * prev = this;
-  // // context_initializer::active_ will point to `this`
-  // // prev will point to previous active context
-  // std::swap( context_initializer::active_, prev);
-  // // pass pointer to the context that resumes `this`
-  // return std::move( c_).resume_with([prev](boost::context::fiber && c){
-  //             prev->c_ = std::move( c);
-  //             return boost::context::fiber{};
-  //         });
-
-  // return std::move(next->context_);
 }
 
 void Reactor::Dispatch() {

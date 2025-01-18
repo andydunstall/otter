@@ -17,7 +17,10 @@ class Task {
 
   Task(Task&& task) noexcept : context_{} { swap(task); }
 
-  Task& operator=(Task&& task) noexcept { context_.swap(task.context_); }
+  Task& operator=(Task&& task) noexcept {
+    context_.swap(task.context_);
+    return *this;
+  }
 
   void swap(Task& task) noexcept { context_.swap(task.context_); }
 
