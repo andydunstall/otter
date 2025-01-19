@@ -23,7 +23,7 @@ void Context::Wake() { local()->scheduler()->AddReady(this); }
 boost::context::fiber Context::Terminate() {
   terminated_ = true;
   wait_queue_.NotifyAll();
-  local()->Terminate();
+  return local()->Terminate();
 }
 
 }  // namespace internal

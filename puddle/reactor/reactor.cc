@@ -107,7 +107,6 @@ void Reactor::Suspend() {
   internal::Context* prev = active_;
   active_ = next;
 
-  // TODO next.SwitchTo();
   std::move(active_->context_).resume_with([prev](boost::context::fiber&& c) {
     prev->context_ = std::move(c);
     return boost::context::fiber{};
@@ -115,23 +114,26 @@ void Reactor::Suspend() {
 }
 
 boost::context::fiber Reactor::Terminate() {
-  internal::Context* next = scheduler_.Next();
+  internal::Context* next = scheduler_.Terminate(active_);
 
   logger_.Debug("terminate; to = {}", next->name());
 
   internal::Context* prev = active_;
   active_ = next;
 
-  std::move(active_->context_).resume_with([prev](boost::context::fiber&& c) {
-    prev->context_ = std::move(c);
-    return boost::context::fiber{};
-  });
+  return std::move(active_->context_)
+      .resume_with([prev](boost::context::fiber&& c) {
+        prev->context_ = std::move(c);
+        return boost::context::fiber{};
+      });
 }
 
 void Reactor::Dispatch() {
   while (true) {
     io_uring_submit_and_get_events(&ring_);
     DispatchEvents();
+
+    scheduler_.ReleaseTerminated();
 
     if (scheduler_.has_ready()) {
       Yield();

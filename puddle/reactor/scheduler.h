@@ -1,6 +1,9 @@
 #pragma once
 
+#include <list>
+
 #include "boost/intrusive/list.hpp"
+#include "boost/intrusive/slist.hpp"
 #include "puddle/reactor/context.h"
 
 namespace puddle {
@@ -18,13 +21,25 @@ class Scheduler {
 
   Context* Next();
 
+  Context* Terminate(Context* context);
+
+  void ReleaseTerminated();
+
  private:
   using ReadyQueueType = boost::intrusive::list<
       Context,
       boost::intrusive::member_hook<Context, ReadyHook, &Context::ready_hook_>,
       boost::intrusive::constant_time_size<false>>;
 
+  using TerminateQueueType = boost::intrusive::slist<
+      Context,
+      boost::intrusive::member_hook<Context, TerminateHook,
+                                    &Context::terminated_hook_>,
+      boost::intrusive::linear<true>, boost::intrusive::cache_last<true>>;
+
   ReadyQueueType ready_queue_;
+
+  TerminateQueueType terminate_queue_;
 };
 
 }  // namespace internal

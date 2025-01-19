@@ -19,6 +19,9 @@ class Scheduler;
 using ReadyHook = boost::intrusive::list_member_hook<
     boost::intrusive::link_mode<boost::intrusive::safe_link>>;
 
+using TerminateHook = boost::intrusive::list_member_hook<
+    boost::intrusive::link_mode<boost::intrusive::safe_link>>;
+
 // Context represents the a tasks execution state.
 class Context {
  public:
@@ -57,6 +60,8 @@ class Context {
   std::string name_;
 
   ReadyHook ready_hook_;
+
+  TerminateHook terminated_hook_;
 
   WaitQueue wait_queue_;
 
