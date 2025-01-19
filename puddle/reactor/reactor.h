@@ -54,6 +54,8 @@ class Reactor {
 
   internal::Context* active() { return active_; }
 
+  internal::Scheduler* scheduler() { return &scheduler_; }
+
   template <typename Fn, typename... Arg>
   Task Spawn(const std::string& name, Fn&& fn, Arg&&... arg) {
     auto context = internal::TaskContext<Fn, Arg...>::Allocate(

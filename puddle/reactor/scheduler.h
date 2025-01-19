@@ -24,7 +24,7 @@ class Scheduler {
       boost::intrusive::member_hook<Context, ReadyHook, &Context::ready_hook_>,
       boost::intrusive::constant_time_size<false>>;
 
-  ReadyQueueType ready_queue_{};
+  ReadyQueueType ready_queue_;
 };
 
 }  // namespace internal

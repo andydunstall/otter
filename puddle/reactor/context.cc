@@ -13,12 +13,16 @@ Context::~Context() { assert(!ready_hook_.is_linked()); }
 void Context::Join() {
   if (terminated_) return;
 
-  join_wait_ = local()->active();
-  local()->Suspend();
+  wait_queue_.SuspendAndWait(local()->active());
 }
+
+void Context::Suspend() { local()->Suspend(); }
+
+void Context::Wake() { local()->scheduler()->AddReady(this); }
 
 boost::context::fiber Context::Terminate() {
   terminated_ = true;
+  wait_queue_.NotifyAll();
   local()->Terminate();
 }
 

@@ -1,10 +1,9 @@
 #pragma once
 
-#include <atomic>
-
 #include "boost/context/fiber.hpp"
 #include "boost/intrusive/list.hpp"
 #include "boost/intrusive_ptr.hpp"
+#include "puddle/reactor/wait_queue.h"
 
 namespace puddle {
 namespace reactor {
@@ -37,6 +36,10 @@ class Context {
 
   void Join();
 
+  void Suspend();
+
+  void Wake();
+
   friend void intrusive_ptr_add_ref(Context* c) noexcept;
   friend void intrusive_ptr_release(Context* c) noexcept;
 
@@ -55,26 +58,23 @@ class Context {
 
   ReadyHook ready_hook_;
 
-  // TODO(andydunstall): Temporary.
-  Context* join_wait_;
+  WaitQueue wait_queue_;
 
   bool terminated_;
 
   // Reference counter for intrusive_ptr.
-  std::atomic<size_t> ref_count_;
+  size_t ref_count_;
 };
 
 inline void intrusive_ptr_add_ref(Context* c) noexcept {
   assert(c != nullptr);
-  c->ref_count_.fetch_add(1, std::memory_order_relaxed);
+  c->ref_count_++;
 }
 
 inline void intrusive_ptr_release(Context* c) noexcept {
   assert(c != nullptr);
-  if (c->ref_count_.fetch_sub(1, std::memory_order_release) == 1) {
-    std::atomic_thread_fence(std::memory_order_acquire);
-
-    // TODO(andydunstall): Need to understand this better.
+  c->ref_count_--;
+  if (c->ref_count_ == 0) {
     boost::context::fiber context = std::move(c->context_);
     c->~Context();
     std::move(context).resume();

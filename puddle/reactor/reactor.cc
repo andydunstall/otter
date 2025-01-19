@@ -115,11 +115,6 @@ void Reactor::Suspend() {
 }
 
 boost::context::fiber Reactor::Terminate() {
-  if (active_->join_wait_) {
-    logger_.Debug("join wake; {}", active_->join_wait_->name());
-    scheduler_.AddReady(active_->join_wait_);
-  }
-
   internal::Context* next = scheduler_.Next();
 
   logger_.Debug("terminate; to = {}", next->name());
