@@ -102,7 +102,7 @@ void Config::Load(const std::string& path, bool expand_env) {
   }
 }
 
-Listener::Listener() : logger_{"listener"} {}
+Listener::Listener() : logger_{"echo.listener"} {}
 
 void Listener::Serve(const std::string& addr) {
   auto listener = puddle::net::TcpListener::Bind(addr, 128);

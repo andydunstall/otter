@@ -130,7 +130,7 @@ Config Config::Default() {
 
 void Stats::Merge(const Stats& s) { histogram.Merge(s.histogram); }
 
-Benchmark::Benchmark(Config config) : config_{config}, logger_{"bench"} {
+Benchmark::Benchmark(Config config) : config_{config}, logger_{"echo.bench"} {
   if (config_.clients % config_.reactor.threads != 0) {
     logger_.Warn("threads is not a multiple of clients: {} / {}",
                  config_.clients, config_.reactor.threads);

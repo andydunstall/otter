@@ -8,7 +8,7 @@
 namespace puddle {
 namespace reactor {
 
-Pool::Pool(Config config) : config_{config} {}
+Pool::Pool(Config config) : config_{config}, logger_{"reactor.pool"} {}
 
 void Pool::OnAllShards(std::function<void()> f) {
   int n_threads = config_.threads;
@@ -19,6 +19,7 @@ void Pool::OnAllShards(std::function<void()> f) {
         [&](int shard_id) {
           reactor::Reactor::Setup(config_);
           shard::set_local({.id = shard_id});
+          logger_.Info("starting reactor");
           f();
         },
         shard_id);
@@ -33,6 +34,7 @@ void Pool::OnAllShards(std::function<void()> f) {
     CPU_SET(cpu_id, &cpu_set);
     pthread_setaffinity_np(threads[shard_id].native_handle(), sizeof(cpu_set_t),
                            &cpu_set);
+    logger_.Info("pin shard cpu; shard_id = {}; cpu_id = {}", shard_id, cpu_id);
   }
   for (auto& thread : threads) {
     thread.join();

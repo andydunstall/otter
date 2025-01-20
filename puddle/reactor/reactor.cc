@@ -65,7 +65,8 @@ void BlockingRequest::SetResult(int result) {
   local()->scheduler_.AddReady(ctx_);
 }
 
-Reactor::Reactor(Config config) : main_context_{"main"}, logger_{"reactor"} {
+Reactor::Reactor(Config config)
+    : main_context_{"main"}, logger_{"reactor.reactor"} {
   int res = io_uring_queue_init(config.ring_size, &ring_, 0);
   if (res != 0) {
     logger_.Fatal("failed to setup io_uring: {}", strerror(-res));
@@ -90,7 +91,6 @@ void Reactor::Yield() {
   scheduler_.AddReady(prev);
   active_ = next;
 
-  // TODO next.SwitchTo();
   std::move(active_->context_).resume_with([prev](boost::context::fiber&& c) {
     prev->context_ = std::move(c);
     return boost::context::fiber{};
@@ -138,7 +138,6 @@ void Reactor::Dispatch() {
     if (scheduler_.has_ready()) {
       Yield();
     } else {
-      logger_.Debug("block");
       __kernel_timespec* ts_arg = nullptr;
       struct io_uring_cqe* cqe_ptr = nullptr;
       io_uring_wait_cqes(&ring_, &cqe_ptr, 1, ts_arg, NULL);
@@ -165,6 +164,8 @@ void Reactor::DispatchEvents() {
   if (cqe_count) {
     io_uring_cq_advance(&ring_, cqe_count);
   }
+
+  logger_.Debug("dispatched events; count = {}", cqe_count);
 }
 
 Reactor* local() { return Reactor::local(); }

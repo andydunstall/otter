@@ -2,6 +2,7 @@
 
 #include <functional>
 
+#include "puddle/log/log.h"
 #include "puddle/reactor/config.h"
 
 namespace puddle {
@@ -18,6 +19,8 @@ class Pool {
 
  private:
   Config config_;
+
+  log::Logger logger_;
 };
 
 }  // namespace reactor
