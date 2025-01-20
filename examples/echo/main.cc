@@ -29,10 +29,10 @@ int Server(const std::vector<std::string>& flags) {
   for (size_t i = 0; i < flags.size(); i++) {
     if (flags[i] == "-h" || flags[i] == "--help") {
       help = true;
-    } else if (flags[i] == "-c" || "--config.path") {
+    } else if (flags[i] == "-c" || flags[i] == "--config.path") {
       if (i == flags.size() - 1 || flags[i + 1][0] == '-') {
         fmt::print(
-            "error: missing config path: {} (see `echo server --help`)\n",
+            "error: missing config path: {} (kee `echo server --help`)\n",
             flags[i]);
         return EXIT_FAILURE;
       }
@@ -75,11 +75,10 @@ Flags:
   -e, --config.expand-env
                            Whether to expand environment variables in the config file.
 
-                           This will replaces references to ${{VAR}} or $VAR with the corresponding
+                           This will replaces references to ${VAR} or $VAR with the corresponding
                            environment variable. The replacement is case-sensitive.
 
-                           References to undefined variables will be replaced with an empty string. A
-                           default value can be given using form ${{VAR:default}}.
+                           References to undefined variables will be replaced with an empty string.
 )");
     return EXIT_SUCCESS;
   }
@@ -118,7 +117,7 @@ int Bench(const std::vector<std::string>& flags) {
   for (size_t i = 0; i < flags.size(); i++) {
     if (flags[i] == "-h" || flags[i] == "--help") {
       help = true;
-    } else if (flags[i] == "-c" || "--config.path") {
+    } else if (flags[i] == "-c" || flags[i] == "--config.path") {
       if (i == flags.size() - 1 || flags[i + 1][0] == '-') {
         fmt::print(
             "error: missing config path: {} (see `neptune server --help`)\n",
@@ -164,11 +163,10 @@ Flags:
   -e, --config.expand-env
                            Whether to expand environment variables in the config file.
 
-                           This will replaces references to ${{VAR}} or $VAR with the corresponding
+                           This will replaces references to ${VAR} or $VAR with the corresponding
                            environment variable. The replacement is case-sensitive.
 
-                           References to undefined variables will be replaced with an empty string. A
-                           default value can be given using form ${{VAR:default}}.
+                           References to undefined variables will be replaced with an empty string.
 )");
     return EXIT_SUCCESS;
   }

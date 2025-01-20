@@ -19,6 +19,17 @@ class Exception : public std::exception {
   std::string m_;
 };
 
+// Expand is the same as ExpandEnv, though accepts a custom mapping instead
+// of using environment variables.
+std::string Expand(const std::string s,
+                   std::function<std::string(const std::string&)> mapping);
+
+// ExpandEnv replaces reference to ${VAR} or $VAR with the corresponding
+// environment variable. The replacement is case-sensitive.
+//
+// References to undefined variables will be replaced with an empty string.
+std::string ExpandEnv(const std::string s);
+
 YAML::Node LoadYaml(const std::string& path, bool expand_env);
 
 }  // namespace config
