@@ -74,6 +74,17 @@ class Reactor {
   // by another task to run again.
   void Suspend();
 
+  template <typename Clock, typename Duration>
+  void SleepUntil(const std::chrono::time_point<Clock, Duration>& time) {
+    scheduler_.AddSleep(active_, time);
+    Suspend();
+  }
+
+  template <typename Rep, typename Period>
+  void SleepFor(const std::chrono::duration<Rep, Period>& duration) {
+    SleepUntil(std::chrono::steady_clock::now() + duration);
+  }
+
   boost::context::fiber Terminate();
 
   void Dispatch();

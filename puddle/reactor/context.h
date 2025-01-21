@@ -1,7 +1,10 @@
 #pragma once
 
+#include <chrono>
+
 #include "boost/context/fiber.hpp"
 #include "boost/intrusive/list.hpp"
+#include "boost/intrusive/set.hpp"
 #include "boost/intrusive_ptr.hpp"
 #include "puddle/reactor/wait_queue.h"
 
@@ -17,6 +20,9 @@ constexpr size_t kStackSize = 64 * 1024;
 class Scheduler;
 
 using ReadyHook = boost::intrusive::list_member_hook<
+    boost::intrusive::link_mode<boost::intrusive::safe_link>>;
+
+using SleepHook = boost::intrusive::set_member_hook<
     boost::intrusive::link_mode<boost::intrusive::safe_link>>;
 
 using TerminateHook = boost::intrusive::list_member_hook<
@@ -61,9 +67,14 @@ class Context {
 
   ReadyHook ready_hook_;
 
+  SleepHook sleep_hook_;
+
   TerminateHook terminated_hook_;
 
   WaitQueue wait_queue_;
+
+  // Time the context is asleep till when it is in the schedulers sleep queue.
+  std::chrono::steady_clock::time_point sleep_time_;
 
   bool terminated_;
 

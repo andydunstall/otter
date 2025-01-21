@@ -134,11 +134,25 @@ void Reactor::Dispatch() {
     DispatchEvents();
 
     scheduler_.ReleaseTerminated();
+    int64_t timeout_ns = scheduler_.WakeSleeping();
 
     if (scheduler_.has_ready()) {
       Yield();
     } else {
+      if (timeout_ns == 0) {
+        continue;
+      }
+
+      __kernel_timespec ts{0, 0};
       __kernel_timespec* ts_arg = nullptr;
+
+      // If timeout_ns < 0, we block indefinitely.
+      if (timeout_ns > 0) {
+        ts.tv_sec = timeout_ns / 1000000000ULL;
+        ts.tv_nsec = timeout_ns % 1000000000ULL;
+        ts_arg = &ts;
+      }
+
       struct io_uring_cqe* cqe_ptr = nullptr;
       io_uring_wait_cqes(&ring_, &cqe_ptr, 1, ts_arg, NULL);
       DispatchEvents();
