@@ -4,4 +4,6 @@ namespace puddle {
 
 void Task::Join() {}
 
+void Task::Detach() {}
+
 }  // namespace puddle

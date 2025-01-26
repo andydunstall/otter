@@ -1,9 +1,9 @@
-#include "puddle/puddle.h"
-
 #include "puddle/internal/reactor.h"
 
 namespace puddle {
+namespace internal {
 
-void Start() { internal::Reactor::Start(); }
+void Reactor::Start() {}
 
+}  // namespace internal
 }  // namespace puddle

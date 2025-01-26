@@ -2,8 +2,12 @@
 
 #include <string>
 
+#include "puddle/internal/tcp.h"
+
 namespace puddle {
 namespace net {
+
+class TcpListener;
 
 class TcpConn {
  public:
@@ -20,6 +24,13 @@ class TcpConn {
   size_t Write(const uint8_t* buf, size_t size);
 
   static TcpConn Connect(const std::string& addr);
+
+ private:
+  friend TcpListener;
+
+  TcpConn(internal::TcpSocket socket);
+
+  internal::TcpSocket socket_;
 };
 
 class TcpListener {
@@ -35,6 +46,11 @@ class TcpListener {
   TcpConn Accept();
 
   static TcpListener Bind(const std::string& addr, int backlog);
+
+ private:
+  TcpListener(internal::TcpSocket s);
+
+  internal::TcpSocket socket_;
 };
 
 }  // namespace net
