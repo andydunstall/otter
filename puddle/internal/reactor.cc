@@ -3,7 +3,63 @@
 namespace puddle {
 namespace internal {
 
-void Reactor::Start() {}
+BlockingRequest::BlockingRequest() : ctx_(Reactor::local()->active_) {}
+
+int BlockingRequest::Wait() {
+  // Suspend the current fiber, then the reactor will wake us up once the
+  // result is ready.
+  Reactor::local()->Suspend();
+  return result_;
+}
+
+void BlockingRequest::Connect(int sockfd, struct sockaddr* addr,
+                              socklen_t addrlen) {
+  struct io_uring_sqe* sqe = io_uring_get_sqe(&Reactor::local()->ring_);
+  io_uring_prep_connect(sqe, sockfd, addr, addrlen);
+  io_uring_sqe_set_data(sqe, this);
+}
+
+void BlockingRequest::Accept(int sockfd, struct sockaddr* addr,
+                             socklen_t* addrlen, int flags) {
+  struct io_uring_sqe* sqe = io_uring_get_sqe(&Reactor::local()->ring_);
+  io_uring_prep_accept(sqe, sockfd, addr, addrlen, flags);
+  io_uring_sqe_set_data(sqe, this);
+}
+
+void BlockingRequest::Read(int fd, void* buf, unsigned nbytes, off_t offset) {
+  struct io_uring_sqe* sqe = io_uring_get_sqe(&Reactor::local()->ring_);
+  io_uring_prep_read(sqe, fd, buf, nbytes, offset);
+  io_uring_sqe_set_data(sqe, this);
+}
+
+void BlockingRequest::Write(int fd, const void* buf, unsigned nbytes,
+                            off_t offset) {
+  struct io_uring_sqe* sqe = io_uring_get_sqe(&Reactor::local()->ring_);
+  io_uring_prep_write(sqe, fd, buf, nbytes, offset);
+  io_uring_sqe_set_data(sqe, this);
+}
+
+void BlockingRequest::SetResult(int result) {
+  result_ = result;
+  Reactor::local()->Schedule(ctx_);
+}
+
+Reactor::Reactor() {}
+
+Reactor::~Reactor() {}
+
+void Reactor::Yield() {}
+
+void Reactor::Suspend() {}
+
+void Reactor::Schedule(Context* context) {}
+
+void Reactor::Start() {
+  // Set local reactor.
+  local_ = new Reactor{};
+}
+
+thread_local Reactor* Reactor::local_ = nullptr;
 
 }  // namespace internal
 }  // namespace puddle
