@@ -44,7 +44,13 @@ void BlockingRequest::SetResult(int result) {
   Reactor::local()->Schedule(ctx_);
 }
 
-Reactor::Reactor() {}
+Reactor::Config Reactor::Config::Default() {
+  Config config;
+  config.ring_size = 1024;
+  return config;
+}
+
+Reactor::Reactor(Config config) {}
 
 Reactor::~Reactor() {}
 
@@ -54,9 +60,9 @@ void Reactor::Suspend() {}
 
 void Reactor::Schedule(Context* context) {}
 
-void Reactor::Start() {
+void Reactor::Start(Config config) {
   // Set local reactor.
-  local_ = new Reactor{};
+  local_ = new Reactor{config};
 }
 
 thread_local Reactor* Reactor::local_ = nullptr;

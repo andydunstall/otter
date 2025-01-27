@@ -4,6 +4,12 @@
 
 namespace puddle {
 
-void Start() { internal::Reactor::Start(); }
+Config Config::Default() {
+  Config config;
+  config.reactor = internal::Reactor::Config::Default();
+  return config;
+}
+
+void Start(Config config) { internal::Reactor::Start(config.reactor); }
 
 }  // namespace puddle

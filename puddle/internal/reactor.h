@@ -38,7 +38,14 @@ class BlockingRequest {
 // Reactor manages scheduling tasks and asynchronous IO.
 class Reactor {
  public:
-  Reactor();
+  struct Config {
+    // io_uring ring size.
+    int ring_size;
+
+    static Config Default();
+  };
+
+  Reactor(Config config);
 
   ~Reactor();
 
@@ -68,7 +75,7 @@ class Reactor {
   static Reactor* local() { return local_; }
 
   // Starts the reactor in the local thread.
-  static void Start();
+  static void Start(Config config);
 
  private:
   // Required for access to ring_.

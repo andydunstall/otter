@@ -2,12 +2,19 @@
 
 #include <chrono>
 
+#include "puddle/internal/reactor.h"
 #include "puddle/task.h"
 
 namespace puddle {
 
+struct Config {
+  internal::Reactor::Config reactor;
+
+  static Config Default();
+};
+
 // Start the puddle runtime.
-void Start();
+void Start(Config config = Config::Default());
 
 // Spawn a task (user-space thread).
 template <typename Fn, typename... Arg>
