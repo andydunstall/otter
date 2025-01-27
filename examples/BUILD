@@ -8,6 +8,7 @@ cc_binary(
     ],
     deps = [
         "//puddle",
+        "//puddle/log",
         "//puddle/net",
     ],
 )

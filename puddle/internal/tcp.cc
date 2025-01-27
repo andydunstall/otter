@@ -26,8 +26,12 @@ struct sockaddr_in ParseAddr(const std::string& addr) {
   std::string ip_str = addr.substr(0, pos);
   std::string port_str = addr.substr(pos + 1);
 
-  if (inet_pton(AF_INET, ip_str.c_str(), &sock_addr.sin_addr) != 1) {
-    throw std::runtime_error("invalid address: " + addr);
+  if (ip_str == "") {
+    sock_addr.sin_addr.s_addr = INADDR_ANY;
+  } else {
+    if (inet_pton(AF_INET, ip_str.c_str(), &sock_addr.sin_addr) != 1) {
+      throw std::runtime_error("invalid address: " + addr);
+    }
   }
 
   try {

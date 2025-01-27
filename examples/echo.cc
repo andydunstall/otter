@@ -7,6 +7,7 @@
 #include <csignal>
 #include <iostream>
 
+#include "puddle/log/log.h"
 #include "puddle/net/tcp.h"
 #include "puddle/puddle.h"
 #include "puddle/signal.h"
@@ -38,8 +39,10 @@ int main(int argc, char* argv[]) {
   bool stop = false;
   puddle::NotifySignal({SIGINT, SIGTERM}, [&stop] { stop = true; });
 
+  puddle::log::Logger logger{"main"};
+  logger.Info("starting echo server; addr = {}", ":4411");
+
   auto listener = puddle::net::TcpListener::Bind(":4411", 128);
-  std::cout << "starting echo server; addr = :4411" << std::endl;
 
   while (!stop) {
     auto conn = listener.Accept();

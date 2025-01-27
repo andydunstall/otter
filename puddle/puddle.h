@@ -3,11 +3,14 @@
 #include <chrono>
 
 #include "puddle/internal/reactor.h"
+#include "puddle/log/log.h"
 #include "puddle/task.h"
 
 namespace puddle {
 
 struct Config {
+  log::Config log;
+
   internal::Reactor::Config reactor;
 
   static Config Default();
