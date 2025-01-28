@@ -1,19 +1,12 @@
 # Puddle
 
-Puddle is a scheduler for lightweight user-space threads (tasks) in C++. It
+Puddle is a runtime for lightweight user-space threads (tasks) in C++. It
 includes a library for I/O based on `io_uring`.
 
 Note rewriting Puddle in `main`, see [`legacy`](https://github.com/andydunstall/puddle/tree/legacy)
 for the previous version.
 
-## :warning: Limitations
-
-Puddle is only a toy project to learn about and experiment with `io_uring`, so
-isn't built for production. It only supports Linux.
-
-Puddle doesn't yet support message passing or communication between OS threads.
-Instead the 'runtime' only supports a single OS thread (though you can run
-independent runtimes on different threads).
+## Build
 
 ### Prerequisites
 
@@ -49,3 +42,16 @@ Build all Puddle libraries and examples with:
 ```
 $ bazel build //...
 ```
+
+## Examples
+
+See [`examples`](./examples).
+
+## :warning: Limitations
+
+Puddle is only a toy project to learn about and experiment with `io_uring`, so
+isn't built for production. It only supports Linux.
+
+Puddle doesn't yet support message passing or communication between OS threads.
+Instead the 'runtime' only supports a single OS thread (though you can run
+independent runtimes on different threads).
