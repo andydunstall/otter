@@ -3,4 +3,7 @@ cc_library(
     hdrs = glob(["*.h"]),
     srcs = glob(["*.cc"]),
     visibility = ["//puddle:__subpackages__"],
+    deps = [
+        "//puddle/log",
+    ],
 )

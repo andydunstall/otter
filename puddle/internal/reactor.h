@@ -5,6 +5,7 @@
 
 #include "boost/intrusive_ptr.hpp"
 #include "puddle/internal/context.h"
+#include "puddle/log/log.h"
 
 namespace puddle {
 namespace internal {
@@ -86,6 +87,8 @@ class Reactor {
   Context* active_;
 
   io_uring ring_;
+
+  log::Logger logger_;
 };
 
 }  // namespace internal

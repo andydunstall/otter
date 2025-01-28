@@ -1,5 +1,7 @@
 #include "puddle/internal/reactor.h"
 
+#include <cstring>
+
 namespace puddle {
 namespace internal {
 
@@ -50,9 +52,14 @@ Reactor::Config Reactor::Config::Default() {
   return config;
 }
 
-Reactor::Reactor(Config config) {}
+Reactor::Reactor(Config config) : logger_{"reactor"} {
+  int res = io_uring_queue_init(config.ring_size, &ring_, 0);
+  if (res != 0) {
+    logger_.Fatal("failed to setup io_uring: {}", strerror(-res));
+  }
+}
 
-Reactor::~Reactor() {}
+Reactor::~Reactor() { io_uring_queue_exit(&ring_); }
 
 void Reactor::Yield() {}
 
