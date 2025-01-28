@@ -5,6 +5,7 @@
 
 #include "boost/intrusive_ptr.hpp"
 #include "puddle/internal/context.h"
+#include "puddle/internal/scheduler.h"
 #include "puddle/log/log.h"
 
 namespace puddle {
@@ -37,6 +38,19 @@ class BlockingRequest {
 };
 
 // Reactor manages scheduling tasks and asynchronous IO.
+//
+// The reactor always has an "active" context, which is currently running.
+// When the active context yields, the scheduler selects another context to
+// run.
+//
+// The reactor has it's own context which is always ready to run, which manages
+// submitting and waiting for events with io_uring. The reactor context will
+// block waiting for I/O if there are no other ready contexts.
+//
+// To perform I/O, contexts submit io_uring operations to the reactor using
+// BlockingRequest, then suspend their context. The once the operation has
+// complete, the reactor adds the context that scheduled the operation to
+// the ready queue so it can be scheduled.
 class Reactor {
  public:
   struct Config {
@@ -62,11 +76,20 @@ class Reactor {
   // Spawn a task context.
   template <typename Fn, typename... Arg>
   boost::intrusive_ptr<Context> Spawn(Fn&& fn, Arg&&... arg) {
-    return nullptr;
+    auto context = internal::TaskContext<Fn, Arg...>::Spawn(
+        std::forward<Fn>(fn), std::forward<Arg>(arg)...);
+    scheduler_.AddReady(context.get());
+    return context;
   }
 
+  // Yield the current context so the scheduler can switch to another context.
+  // The current context will be added to the schedulers ready queue to be
+  // scheduled again.
   void Yield();
 
+  // Suspend the current context, which is the same as yield except the current
+  // context is not added to the schedulers ready queue. It will have to be
+  // awoken by another context to run again.
   void Suspend();
 
   // Schedule adds the context to the ready queue.
@@ -83,6 +106,8 @@ class Reactor {
   friend BlockingRequest;
 
   static thread_local Reactor* local_;
+
+  Scheduler scheduler_;
 
   Context* active_;
 

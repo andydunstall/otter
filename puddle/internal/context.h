@@ -10,6 +10,7 @@
 namespace puddle {
 namespace internal {
 
+class Reactor;
 class Scheduler;
 
 using ReadyHook = boost::intrusive::list_member_hook<
@@ -26,6 +27,9 @@ class Context {
 
  protected:
   static constexpr size_t kStackSize = 64 * 1024;
+
+  // Required for access to context_.
+  friend Reactor;
 
   boost::context::fiber Terminate();
 

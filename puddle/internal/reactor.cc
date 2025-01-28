@@ -61,11 +61,47 @@ Reactor::Reactor(Config config) : logger_{"reactor"} {
 
 Reactor::~Reactor() { io_uring_queue_exit(&ring_); }
 
-void Reactor::Yield() {}
+void Reactor::Yield() {
+  // The reactor context is always ready (unless we're in the reactor
+  // context) so we'll always have another context to switch to.
+  internal::Context* next = scheduler_.NextReady();
+  assert(next != nullptr);
 
-void Reactor::Suspend() {}
+  // Add the current context to the ready queue.
+  internal::Context* prev = active_;
+  scheduler_.AddReady(prev);
+  active_ = next;
 
-void Reactor::Schedule(Context* context) {}
+  // Switch to the new context. As the underlying Boost context is "one shot",
+  // we must update prev->context_ to the new state.
+  //
+  // We ignore the returned context as it's already in the ready queue.
+  std::move(active_->context_).resume_with([prev](boost::context::fiber&& c) {
+    prev->context_ = std::move(c);
+    return boost::context::fiber{};
+  });
+}
+
+void Reactor::Suspend() {
+  // The reactor context is always ready (unless we're in the reactor
+  // context) so we'll always have another context to switch to.
+  internal::Context* next = scheduler_.NextReady();
+  assert(next != nullptr);
+
+  internal::Context* prev = active_;
+  active_ = next;
+
+  // Switch to the new context. As the underlying Boost context is "one shot",
+  // we must update prev->context_ to the new state.
+  //
+  // We ignore the returned context as it's already been added to prev.
+  std::move(active_->context_).resume_with([prev](boost::context::fiber&& c) {
+    prev->context_ = std::move(c);
+    return boost::context::fiber{};
+  });
+}
+
+void Reactor::Schedule(Context* context) { scheduler_.AddReady(context); }
 
 void Reactor::Start(Config config) {
   // Set local reactor.
