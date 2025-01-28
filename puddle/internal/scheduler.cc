@@ -28,7 +28,7 @@ std::chrono::steady_clock::time_point Scheduler::NextSleep() {
   return std::chrono::steady_clock::time_point::max();
 }
 
-void Scheduler::Wake() {
+void Scheduler::WakeSleeping() {
   // Wake contexts whose deadline has been reached by moving them to the
   // ready queue.
   //

@@ -30,7 +30,7 @@ ReactorContext::ReactorContext(const boost::context::preallocated& palloc,
 }
 
 boost::context::fiber ReactorContext::Run(boost::context::fiber&& c) {
-  reactor_->Dispatch();
+  reactor_->Run();
   return boost::context::fiber{};
 }
 
@@ -159,8 +159,45 @@ void Reactor::Suspend() {
 
 void Reactor::Schedule(Context* context) { scheduler_.AddReady(context); }
 
-void Reactor::Dispatch() {
-  // TODO(andydunstall)
+void Reactor::Run() {
+  while (true) {
+    io_uring_submit_and_get_events(&ring_);
+    DispatchEvents();
+
+    scheduler_.WakeSleeping();
+
+    // If there are ready contexts, yield so they can run.
+    if (scheduler_.has_ready()) {
+      Yield();
+      continue;
+    }
+
+    // If there are no ready contexts, block until a pending io_uring operation
+    // completes, or the next context on the sleep queue should be woken up.
+
+    __kernel_timespec ts{0, 0};
+    __kernel_timespec* ts_arg = nullptr;
+
+    auto next_wake = scheduler_.NextSleep();
+    // If there are no sleeping contexts, block indefinitely.
+    if (next_wake != std::chrono::steady_clock::time_point::max()) {
+      auto timeout_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                            next_wake - std::chrono::steady_clock::now())
+                            .count();
+      if (timeout_ns <= 0) {
+        // Theres a context ready to wake.
+        continue;
+      }
+
+      ts.tv_sec = timeout_ns / 1000000000ULL;
+      ts.tv_nsec = timeout_ns % 1000000000ULL;
+      ts_arg = &ts;
+    }
+
+    struct io_uring_cqe* cqe_ptr = nullptr;
+    io_uring_wait_cqes(&ring_, &cqe_ptr, 1, ts_arg, NULL);
+    DispatchEvents();
+  }
 }
 
 void Reactor::Start(Config config) {
@@ -169,6 +206,25 @@ void Reactor::Start(Config config) {
 }
 
 thread_local Reactor* Reactor::local_ = nullptr;
+
+void Reactor::DispatchEvents() {
+  uint32_t cqe_count = 0;
+  unsigned ring_head;
+  struct io_uring_cqe* cqe;
+  io_uring_for_each_cqe(&ring_, ring_head, cqe) {
+    cqe_count++;
+
+    // Set the request result to wake the context.
+    BlockingRequest* req =
+        static_cast<BlockingRequest*>(io_uring_cqe_get_data(cqe));
+    req->SetResult(cqe->res);
+  }
+  if (cqe_count) {
+    io_uring_cq_advance(&ring_, cqe_count);
+  }
+
+  logger_.Debug("dispatched events; events = {}", cqe_count);
+}
 
 }  // namespace internal
 }  // namespace puddle

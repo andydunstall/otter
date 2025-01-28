@@ -33,7 +33,7 @@ class Scheduler {
 
   // Adds any contexts in the sleep queue whose deadline has passed to the
   // ready queue.
-  void Wake();
+  void WakeSleeping();
 
  private:
   using ReadyQueueType = boost::intrusive::list<

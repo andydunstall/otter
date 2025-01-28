@@ -95,9 +95,8 @@ class Reactor {
   // Schedule adds the context to the ready queue.
   void Schedule(Context* context);
 
-  // Dispatch submits events to io_uring and dispatches completed operations to
-  // other tasks.
-  void Dispatch();
+  // Runs the reactor event loop.
+  void Run();
 
   // Returns the reactor in the local thread.
   static Reactor* local() { return local_; }
@@ -110,6 +109,9 @@ class Reactor {
   friend BlockingRequest;
 
   static thread_local Reactor* local_;
+
+  // Dispatches events on the io_uring completion queue.
+  void DispatchEvents();
 
   Scheduler scheduler_;
 
