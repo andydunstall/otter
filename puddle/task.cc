@@ -2,8 +2,10 @@
 
 namespace puddle {
 
-void Task::Join() {}
+void Task::Join() { context_->Join(); }
 
-void Task::Detach() {}
+void Task::Detach() {
+  // TODO(andydunstall)
+}
 
 }  // namespace puddle

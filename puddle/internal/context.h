@@ -6,6 +6,7 @@
 #include "boost/intrusive/list.hpp"
 #include "boost/intrusive/set.hpp"
 #include "boost/intrusive_ptr.hpp"
+#include "puddle/internal/sync.h"
 
 namespace puddle {
 namespace internal {
@@ -22,6 +23,23 @@ using SleepHook = boost::intrusive::set_member_hook<
 // Context represents the a tasks execution state.
 class Context {
  public:
+  Context();
+
+  ~Context();
+
+  Context(const Context&) = delete;
+  Context& operator=(const Context&) = delete;
+
+  Context(Context&&) = delete;
+  Context& operator=(Context&&) = delete;
+
+  void Join();
+
+  void Suspend();
+
+  // Schedule adds the context to the ready queue.
+  void Schedule();
+
   friend void intrusive_ptr_add_ref(Context* c) noexcept;
   friend void intrusive_ptr_release(Context* c) noexcept;
 
@@ -46,6 +64,14 @@ class Context {
 
   // Time the context is asleep till when it is in the schedulers sleep queue.
   std::chrono::steady_clock::time_point sleep_tp_;
+
+  // Queue of contexts waiting for this context to terminate.
+  WaitQueue join_queue_;
+
+  bool terminated_;
+
+  // Reference counter for intrusive_ptr.
+  size_t ref_count_;
 };
 
 inline void intrusive_ptr_add_ref(Context* c) noexcept {
