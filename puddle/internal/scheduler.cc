@@ -47,5 +47,13 @@ void Scheduler::WakeSleeping() {
   }
 }
 
+void Scheduler::AddTerminating(Context* context) {
+  terminate_queue_.push_back(*context);
+}
+
+void Scheduler::ReleaseTerminating() {
+  // TODO(andydunstall)
+}
+
 }  // namespace internal
 }  // namespace puddle

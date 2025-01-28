@@ -25,8 +25,7 @@ void Context::Schedule() { Reactor::local()->Schedule(this); }
 boost::context::fiber Context::Terminate() {
   terminated_ = true;
   join_queue_.NotifyAll();
-  // TODO(andydunstall)
-  return {};
+  return Reactor::local()->Terminate();
 }
 
 }  // namespace internal

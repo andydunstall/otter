@@ -4,6 +4,7 @@
 
 #include "boost/intrusive/list.hpp"
 #include "boost/intrusive/options.hpp"
+#include "boost/intrusive/slist.hpp"
 #include "puddle/internal/context.h"
 
 namespace puddle {
@@ -35,6 +36,12 @@ class Scheduler {
   // ready queue.
   void WakeSleeping();
 
+  // AddTerminating adds the context to the terminate queue.
+  void AddTerminating(Context* context);
+
+  // ReleaseTerminating releases contexts in the terminate queue.
+  void ReleaseTerminating();
+
  private:
   using ReadyQueueType = boost::intrusive::list<
       Context,
@@ -54,9 +61,17 @@ class Scheduler {
       boost::intrusive::constant_time_size<false>,
       boost::intrusive::compare<SleepTpLess>>;
 
+  using TerminateQueueType = boost::intrusive::slist<
+      Context,
+      boost::intrusive::member_hook<Context, TerminateHook,
+                                    &Context::terminated_hook_>,
+      boost::intrusive::linear<true>, boost::intrusive::cache_last<true>>;
+
   ReadyQueueType ready_queue_;
 
   SleepQueueType sleep_queue_;
+
+  TerminateQueueType terminate_queue_;
 };
 
 }  // namespace internal

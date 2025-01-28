@@ -159,6 +159,27 @@ void Reactor::Suspend() {
 
 void Reactor::Schedule(Context* context) { scheduler_.AddReady(context); }
 
+boost::context::fiber Reactor::Terminate() {
+  scheduler_.AddTerminating(active_);
+
+  // The reactor context is always ready so we're guaranteed to have another
+  // context to switch to.
+  internal::Context* next = scheduler_.NextReady();
+
+  internal::Context* prev = active_;
+  active_ = next;
+
+  // Switch to the new context. As the underlying Boost context is "one shot",
+  // we must update prev->context_ to the new state.
+  //
+  // We ignore the returned context as it's already been added to prev.
+  return std::move(active_->context_)
+      .resume_with([prev](boost::context::fiber&& c) {
+        prev->context_ = std::move(c);
+        return boost::context::fiber{};
+      });
+}
+
 void Reactor::Run() {
   while (true) {
     io_uring_submit_and_get_events(&ring_);

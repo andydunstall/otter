@@ -95,6 +95,16 @@ class Reactor {
   // Schedule adds the context to the ready queue.
   void Schedule(Context* context);
 
+  // Adds the active context to the schedulers terminating queue, then
+  // releases the context from the reactor context.
+  //
+  // We do this because a context cannot release it's own resources, but must
+  // instead switch to another context to release.
+  //
+  // Returns the next context to schedule, as when a Boost context fiber
+  // must return the next context to run.
+  boost::context::fiber Terminate();
+
   // Runs the reactor event loop.
   void Run();
 
