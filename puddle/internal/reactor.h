@@ -95,6 +95,10 @@ class Reactor {
   // Schedule adds the context to the ready queue.
   void Schedule(Context* context);
 
+  // Dispatch submits events to io_uring and dispatches completed operations to
+  // other tasks.
+  void Dispatch();
+
   // Returns the reactor in the local thread.
   static Reactor* local() { return local_; }
 
@@ -109,7 +113,13 @@ class Reactor {
 
   Scheduler scheduler_;
 
+  // Active context thats currently running.
   Context* active_;
+
+  // Main context that started the reactor.
+  Context main_context_;
+
+  boost::intrusive_ptr<internal::Context> reactor_context_;
 
   io_uring ring_;
 

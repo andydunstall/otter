@@ -5,6 +5,56 @@
 namespace puddle {
 namespace internal {
 
+// ReactorContext is the context to run the reactor.
+class ReactorContext final : public Context {
+ public:
+  ReactorContext(const boost::context::preallocated& palloc,
+                 boost::context::fixedsize_stack salloc, Reactor* reactor);
+
+  // Allocates the reactor context and stack.
+  static boost::intrusive_ptr<Context> Spawn(Reactor* reactor);
+
+ private:
+  boost::context::fiber Run(boost::context::fiber&& c);
+
+  Reactor* reactor_;
+};
+
+ReactorContext::ReactorContext(const boost::context::preallocated& palloc,
+                               boost::context::fixedsize_stack salloc,
+                               Reactor* reactor)
+    : Context{}, reactor_{reactor} {
+  context_ = boost::context::fiber{
+      std::allocator_arg, palloc, salloc,
+      std::bind(&ReactorContext::Run, this, std::placeholders::_1)};
+}
+
+boost::context::fiber ReactorContext::Run(boost::context::fiber&& c) {
+  reactor_->Dispatch();
+  return boost::context::fiber{};
+}
+
+boost::intrusive_ptr<Context> ReactorContext::Spawn(Reactor* reactor) {
+  // Allocate a stack for the context, then add the context structure at the
+  // start of the stack.
+  //
+  // Copied from boost fibers make_worker_context_with_properties.
+
+  boost::context::fixedsize_stack salloc{kStackSize};
+  auto sctx = salloc.allocate();
+
+  void* storage =
+      reinterpret_cast<void*>((reinterpret_cast<uintptr_t>(sctx.sp) -
+                               static_cast<uintptr_t>(sizeof(ReactorContext))) &
+                              ~static_cast<uintptr_t>(0xff));
+  void* stack_bottom = reinterpret_cast<void*>(
+      reinterpret_cast<uintptr_t>(sctx.sp) - static_cast<uintptr_t>(sctx.size));
+  const std::size_t size = reinterpret_cast<uintptr_t>(storage) -
+                           reinterpret_cast<uintptr_t>(stack_bottom);
+  return boost::intrusive_ptr<Context>{new (storage) ReactorContext{
+      boost::context::preallocated{storage, size, sctx}, salloc, reactor}};
+}
+
 BlockingRequest::BlockingRequest() : ctx_(Reactor::local()->active_) {}
 
 int BlockingRequest::Wait() {
@@ -57,6 +107,12 @@ Reactor::Reactor(Config config) : logger_{"reactor"} {
   if (res != 0) {
     logger_.Fatal("failed to setup io_uring: {}", strerror(-res));
   }
+
+  reactor_context_ = internal::ReactorContext::Spawn(this);
+  scheduler_.AddReady(reactor_context_.get());
+
+  // The main context is the currently active context.
+  active_ = &main_context_;
 }
 
 Reactor::~Reactor() { io_uring_queue_exit(&ring_); }
@@ -102,6 +158,10 @@ void Reactor::Suspend() {
 }
 
 void Reactor::Schedule(Context* context) { scheduler_.AddReady(context); }
+
+void Reactor::Dispatch() {
+  // TODO(andydunstall)
+}
 
 void Reactor::Start(Config config) {
   // Set local reactor.
