@@ -52,7 +52,14 @@ void Scheduler::AddTerminating(Context* context) {
 }
 
 void Scheduler::ReleaseTerminating() {
-  // TODO(andydunstall)
+  while (!terminate_queue_.empty()) {
+    Context* next = &terminate_queue_.front();
+    terminate_queue_.pop_front();
+
+    // As described in intrusive_ptr_release(Context*), we explicitly call
+    // release to release the context from the reactor context.
+    intrusive_ptr_release(next);
+  }
 }
 
 }  // namespace internal

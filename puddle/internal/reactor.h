@@ -92,6 +92,12 @@ class Reactor {
   // awoken by another context to run again.
   void Suspend();
 
+  template <typename Clock, typename Duration>
+  void SleepUntil(const std::chrono::time_point<Clock, Duration>& tp) {
+    scheduler_.AddSleep(active_, tp);
+    Suspend();
+  }
+
   // Schedule adds the context to the ready queue.
   void Schedule(Context* context);
 

@@ -80,11 +80,28 @@ class Context {
 };
 
 inline void intrusive_ptr_add_ref(Context* c) noexcept {
-  // TODO(andydunstall)
+  assert(c != nullptr);
+  c->ref_count_++;
 }
 
 inline void intrusive_ptr_release(Context* c) noexcept {
-  // TODO(andydunstall)
+  assert(c != nullptr);
+  c->ref_count_--;
+  // Only release the context when reference count equals zero. Since the
+  // ref count is initially 1, this means it's only released when
+  // intrusive_ptr_release is explicitly called from the scheduler. This is
+  // required as the context can't destruct itself, so the reactor context
+  // instead destructs other contexts.
+  if (c->ref_count_ == 0) {
+    // c->context_ contains a jump to the end of Terminate(), where it yielded.
+    //
+    // Therefore we move the underlying Boost context out of the context so it
+    // isn't destructed, then destruct the context, then resume Terminate()
+    // so it can return and exits the context and releases the stack.
+    boost::context::fiber context = std::move(c->context_);
+    c->~Context();
+    std::move(context).resume();
+  }
 }
 
 // TaskContext is a context to run the given function.

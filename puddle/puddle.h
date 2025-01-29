@@ -22,7 +22,9 @@ void Start(Config config = Config::Default());
 // Spawn a task (user-space thread).
 template <typename Fn, typename... Arg>
 Task Spawn(Fn&& fn, Arg&&... arg) {
-  return Task{};
+  auto context = internal::Reactor::local()->Spawn(std::forward<Fn>(fn),
+                                                   std::forward<Arg>(arg)...);
+  return Task{context};
 }
 
 // Yield the current task so the scheduler can switch to another task. The
@@ -36,9 +38,13 @@ void Yield();
 void Suspend();
 
 template <typename Clock, typename Duration>
-void SleepUntil(const std::chrono::time_point<Clock, Duration>& time) {}
+void SleepUntil(const std::chrono::time_point<Clock, Duration>& time) {
+  internal::Reactor::local()->SleepUntil(time);
+}
 
 template <typename Rep, typename Period>
-void SleepFor(const std::chrono::duration<Rep, Period>& duration) {}
+void SleepFor(const std::chrono::duration<Rep, Period>& duration) {
+  SleepUntil(std::chrono::steady_clock::now() + duration);
+}
 
 }  // namespace puddle

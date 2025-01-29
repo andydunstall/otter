@@ -27,7 +27,11 @@ class Task {
   void Detach();
 
  private:
-  Task(boost::intrusive_ptr<internal::Context> context) : context_(context) {}
+  // Required for access to task constructor.
+  template <typename Fn, typename... Arg>
+  friend Task Spawn(Fn&& fn, Arg&&... arg);
+
+  Task(boost::intrusive_ptr<internal::Context> context);
 
   boost::intrusive_ptr<internal::Context> context_;
 };

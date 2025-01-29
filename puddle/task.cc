@@ -8,4 +8,7 @@ void Task::Detach() {
   // TODO(andydunstall)
 }
 
+Task::Task(boost::intrusive_ptr<internal::Context> context)
+    : context_(context) {}
+
 }  // namespace puddle

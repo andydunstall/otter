@@ -186,6 +186,7 @@ void Reactor::Run() {
     DispatchEvents();
 
     scheduler_.WakeSleeping();
+    scheduler_.ReleaseTerminating();
 
     // If there are ready contexts, yield so they can run.
     if (scheduler_.has_ready()) {
