@@ -22,7 +22,7 @@ void Conn(puddle::net::TcpConn conn, bool* stop) {
       }
 
       // Echo the read bytes (which may require multiple writes).
-      size_t write_n;
+      size_t write_n = 0;
       while (write_n < read_n) {
         write_n += conn.Write(buf.data() + write_n, read_n - write_n);
       }

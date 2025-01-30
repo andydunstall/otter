@@ -3,9 +3,6 @@
 Puddle is a runtime for lightweight user-space threads (tasks) in C++. It
 includes a library for I/O based on `io_uring`.
 
-Note rewriting Puddle in `main`, see [`legacy`](https://github.com/andydunstall/puddle/tree/legacy)
-for the previous version.
-
 ## Build
 
 ### Prerequisites
