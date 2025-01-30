@@ -20,6 +20,8 @@ class Task {
     return *this;
   }
 
+  bool joinable() const noexcept { return context_ == nullptr; }
+
   void swap(Task& task) noexcept { context_.swap(task.context_); }
 
   void Join();

@@ -2,10 +2,14 @@
 
 namespace puddle {
 
-void Task::Join() { context_->Join(); }
+void Task::Join() {
+  assert(context_ != nullptr);
+  context_->Join();
+}
 
 void Task::Detach() {
-  // TODO(andydunstall)
+  assert(context_ != nullptr);
+  context_.reset();
 }
 
 Task::Task(boost::intrusive_ptr<internal::Context> context)
