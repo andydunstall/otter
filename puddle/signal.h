@@ -1,10 +1,10 @@
 #pragma once
 
+#include <functional>
 #include <vector>
 
 namespace puddle {
 
-template <typename Fn>
-void NotifySignal(const std::vector<int>& signals, Fn&& fn) {}
+void NotifySignal(const std::vector<int>& signals, std::function<void(int)> fn);
 
 }  // namespace puddle

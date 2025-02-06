@@ -12,7 +12,7 @@
 #include "puddle/puddle.h"
 #include "puddle/signal.h"
 
-void Conn(puddle::net::TcpConn conn, bool* stop) {
+void Conn(puddle::net::TcpConn conn) {
   std::array<uint8_t, 256> buf;
   while (true) {
     try {
@@ -36,16 +36,18 @@ int main(int argc, char* argv[]) {
   // Start the Puddle runtime.
   puddle::Start();
 
-  bool stop = false;
-  puddle::NotifySignal({SIGINT, SIGTERM}, [&stop] { stop = true; });
-
   puddle::log::Logger logger{"main"};
   logger.Info("starting echo server; addr = {}", ":4411");
 
   auto listener = puddle::net::TcpListener::Bind(":4411", 128);
 
-  while (!stop) {
+  puddle::NotifySignal({SIGINT, SIGTERM}, [&](int signal) {
+    logger.Info("shutting down; signal = {}", strsignal(signal));
+    exit(EXIT_SUCCESS);
+  });
+
+  while (true) {
     auto conn = listener.Accept();
-    puddle::Spawn(Conn, std::move(conn), &stop).Detach();
+    puddle::Spawn(Conn, std::move(conn)).Detach();
   }
 }
