@@ -9,15 +9,20 @@
 namespace puddle {
 
 struct Config {
-  log::Config log;
+  // io_uring ring size.
+  int ring_size;
 
-  internal::Reactor::Config reactor;
+  log::Config log;
 
   static Config Default();
 };
 
-// Start the puddle runtime.
-void Start(Config config = Config::Default());
+class Runtime {
+ public:
+  Runtime(Placement placement, Config config);
+
+  int Run(std::function<int()> f);
+};
 
 // Spawn a task (user-space thread).
 template <typename Fn, typename... Arg>

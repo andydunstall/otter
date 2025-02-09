@@ -33,21 +33,20 @@ void Conn(puddle::net::TcpConn conn) {
 }
 
 int main(int argc, char* argv[]) {
-  // Start the Puddle runtime.
-  puddle::Start();
-
   puddle::log::Logger logger{"main"};
   logger.Info("starting echo server; addr = {}", ":4411");
-
-  auto listener = puddle::net::TcpListener::Bind(":4411", 128);
 
   puddle::NotifySignal({SIGINT, SIGTERM}, [&](int signal) {
     logger.Info("shutting down; signal = {}", strsignal(signal));
     exit(EXIT_SUCCESS);
   });
 
-  while (true) {
-    auto conn = listener.Accept();
-    puddle::Spawn(Conn, std::move(conn)).Detach();
-  }
+  puddle::RuntimePool pool{...};
+  return pool.Run([&]{
+    auto listener = puddle::net::TcpListener::Bind(":4411", 128);
+    while (true) {
+      auto conn = listener.Accept();
+      puddle::Spawn(Conn, std::move(conn)).Detach();
+    }
+  });
 }
